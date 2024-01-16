@@ -25,10 +25,10 @@
       <el-main>
         <el-row class="panel-group">
           <el-col
-            :span="6"
-            class="card-panel"
             v-for="ns in namespace_list"
             :key="ns"
+            :span="6"
+            class="card-panel"
             @click.native="goto_ns(ns)"
           >
             {{ ns }}
@@ -44,7 +44,6 @@ import { routerToNs } from "@/utils/k8s";
 
 export default {
   name: "Namespace",
-  computed: {},
   data() {
     return {
       namespace_list: [],
@@ -55,15 +54,15 @@ export default {
   },
   methods: {
     get_ns_list() {
-      let rules = JSON.parse(localStorage.getItem("clusterRole"));
+      const rules = JSON.parse(localStorage.getItem("clusterRole"));
       if (!rules) {
         this.$message({
           type: "error",
           message: "",
         });
       }
-      let ns_list = [];
-      for (let ns in rules) {
+      const ns_list = [];
+      for (const ns in rules) {
         ns_list.push(ns);
       }
       ns_list.sort();
@@ -71,6 +70,7 @@ export default {
     },
     goto_ns(ns) {
       // console.log(ns);
+      localStorage.setItem("ns", ns);
       routerToNs(ns);
     },
     handler_command(command) {
@@ -109,7 +109,8 @@ export default {
     width: 300px;
     height: 60px;
     padding: 16px;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    font-weight: bold;
     margin: 10px 30px;
     border-radius: 8px;
     display: flex;

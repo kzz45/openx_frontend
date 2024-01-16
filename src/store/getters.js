@@ -5,6 +5,7 @@ const getters = {
   token_expire: (state) => state.user.token_expire,
   avatar: (state) => state.user.avatar,
   name: (state) => state.user.name,
+  permission_routes: (state) => state.permission.routes,
   socket: (state) => state.k8s.socket,
   message: (state) => state.k8s.socket.message,
   namespace: (state) => state.k8s.socket.namespace,

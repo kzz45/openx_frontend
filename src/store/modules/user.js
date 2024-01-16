@@ -46,11 +46,11 @@ const actions = {
     return new Promise((resolve, reject) => {
       k8slogin({ username: username.trim(), password: password })
         .then((response) => {
-          // console.log(response.clusterRole.spec.rules);
           localStorage.setItem(
             "clusterRole",
             JSON.stringify(initRules(response.clusterRole.spec.rules))
           );
+
           commit("SET_TOKEN", response.token);
           commit("SET_TOKEN_EXPIRE", response.expireAt);
           setToken(response.token);

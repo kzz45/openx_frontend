@@ -1,10 +1,10 @@
 import axios from "axios";
 import store from "@/store";
-import protoRoot from "@/proto/k8s.js";
+import protoRoot from "@/proto/proto.js";
 
 const requestproto =
-  protoRoot.github.com.nevercase.sargeras.pkg.aggregator.proto;
-const rbacproto = protoRoot.github.com.nevercase.discovery.pkg.apis.rbac.v1;
+  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
+const rbacproto = protoRoot.github.com.kzz45.discovery.pkg.apis.rbac.v1;
 
 async function getService() {
   const cig = await axios.get("config/config.json");
