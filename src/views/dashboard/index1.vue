@@ -8,10 +8,10 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { initSocketData, sendSocketMessage } from "@/api/k8s";
-import protoRoot from "@/proto/k8s";
+import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
-  protoRoot.github.com.nevercase.sargeras.pkg.aggregator.proto;
+  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 
 export default {
   data() {
@@ -31,7 +31,7 @@ export default {
   },
   methods: {
     get_ns() {
-      const senddata = initSocketData("hero-dev1", "core-v1-Node", "list");
+      const senddata = initSocketData("kube-system", "core-v1-Node", "list");
       sendSocketMessage(senddata, store);
     },
     socket_onmessage(msg) {
@@ -44,7 +44,7 @@ export default {
           message: err_msg,
         });
       }
-      if (result.verb === "list" && result.namespace === "hero-dev1") {
+      if (result.verb === "list" && result.namespace === "kube-system") {
         console.log(result);
         const xx = protoApi["core"]["v1"][
           `${result.groupVersionKind.kind}List`

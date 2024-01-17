@@ -6,11 +6,11 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { initSocketData, sendSocketMessage } from "@/api/k8s";
-import protoRoot from "@/proto/k8s";
+import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
-  protoRoot.github.com.nevercase.sargeras.pkg.aggregator.proto;
-const protoGuldan = protoRoot.github.com.nevercase.discovery.pkg.apis.guldan;
+  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
+const protoJingx = protoRoot.github.com.kzz45.discovery.pkg.apis.jingx;
 
 export default {
   computed: {
@@ -34,7 +34,7 @@ export default {
     get_project_list() {
       const senddata = initSocketData(
         "kube-system",
-        "guldan-v1-Project",
+        "jingx-v1-Project",
         "list"
       );
       sendSocketMessage(senddata, store);
@@ -53,7 +53,7 @@ export default {
         result.verb === "list" &&
         result.groupVersionKind.kind === "Project"
       ) {
-        const project_list = protoGuldan["v1"][
+        const project_list = protoJingx["v1"][
           `${result.groupVersionKind.kind}List`
         ].decode(result.raw).items;
         console.log(project_list);

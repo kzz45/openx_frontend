@@ -1,14 +1,14 @@
 import store from "@/store";
 import { cloneDeep } from "lodash";
 import { Notification } from "element-ui";
-import protoRoot from "@/proto/k8s";
+import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRbac = protoRoot.k8s.io.api.rbac;
 const protoRequest =
-  protoRoot.github.com.nevercase.sargeras.pkg.aggregator.proto;
+  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 
 export const binaryToStr = (fileData) => {
-  let dataString = "";
+  let dataString = "";Ï
   for (let i = 0; i < fileData.length; i++) {
     dataString += String.fromCharCode(fileData[i]);
   }
