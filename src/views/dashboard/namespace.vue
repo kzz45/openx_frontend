@@ -40,6 +40,7 @@
 </template>
 
 <script>
+import router from "@/router";
 import { routerToNs } from "@/utils/k8s";
 
 export default {
@@ -70,8 +71,9 @@ export default {
     },
     goto_ns(ns) {
       // console.log(ns);
-      localStorage.setItem("ns", ns);
-      routerToNs(ns);
+      localStorage.setItem("k8s_namespace", ns);
+      // routerToNs(ns);
+      router.push({ path: "/k8s/pod" });
     },
     handler_command(command) {
       if (command === "logout") {
