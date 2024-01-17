@@ -83,7 +83,7 @@ export default {
     return {
       loginForm: {
         username: "admin",
-        password: "mDyntlYtdeedoqlfH7FVO26CYh8bT5rc",
+        password: "qJxZZHgIBfZr5fogobUE6RDgDdcDiiLF",
       },
       loginRules: {
         username: [
@@ -127,7 +127,8 @@ export default {
               this.$router.push({ path: this.redirect || "/" });
               this.loading = false;
             })
-            .catch(() => {
+            .catch((err) => {
+              console.log(err);
               this.loading = false;
             });
         } else {

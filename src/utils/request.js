@@ -60,6 +60,7 @@ async function getService() {
       } else {
         gmtData = resp;
       }
+
       return gmtData;
     },
     (error) => {

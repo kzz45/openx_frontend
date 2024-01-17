@@ -77,7 +77,9 @@ export default {
     },
     handler_command(command) {
       if (command === "logout") {
-        localStorage.clear("k8s_token");
+        localStorage.removeItem("k8s_token");
+        localStorage.removeItem("k8s_token_expire");
+        localStorage.removeItem("clusterRole");
         this.$router.push("/login");
       }
     },

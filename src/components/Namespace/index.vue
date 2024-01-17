@@ -24,7 +24,8 @@ export default {
   data() {
     return {
       namespace_list: [],
-      selected_namespace: "",
+      selected_namespace:
+        localStorage.getItem("k8s_namespace") || "kube-system",
     };
   },
   computed: {

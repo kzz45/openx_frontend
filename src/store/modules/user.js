@@ -91,7 +91,9 @@ const actions = {
   logout({ commit, state }) {
     removeToken(); // must remove  token  first
     resetRouter();
-    localStorage.clear();
+    localStorage.removeItem("k8s_token");
+    localStorage.removeItem("k8s_token_expire");
+    localStorage.removeItem("clusterRole");
     commit("RESET_STATE");
   },
 

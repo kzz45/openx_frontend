@@ -19,7 +19,7 @@ export const constantRoutes = [
   {
     path: "/",
     component: () => import("@/views/dashboard/namespace"),
-    meta: { title: "首页", icon: "home" },
+    meta: { title: "命名空间", icon: "home" },
   },
 ];
 
