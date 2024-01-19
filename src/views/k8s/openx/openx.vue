@@ -1,8 +1,8 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-tabs>
-        <el-tab-pane label="Openx">
+      <el-tabs v-model="active_tab" @tab-click="tab_click">
+        <el-tab-pane label="Openx" name="Openx">
           <el-button type="primary" size="small" icon="el-icon-plus"
             >新增</el-button
           >
@@ -33,15 +33,23 @@
             <el-table-column label="操作"></el-table-column>
           </el-table>
         </el-tab-pane>
-        <!-- <el-tab-pane label="MySQL"></el-tab-pane> -->
-        <!-- <el-tab-pane label="Redis"></el-tab-pane> -->
-        <!-- <el-tab-pane label="Etcd"></el-tab-pane> -->
+        <el-tab-pane label="Affinity" name="Affinity">
+          <AffinityTmplate></AffinityTmplate>
+        </el-tab-pane>
+        <el-tab-pane label="Toleration" name="Toleration">
+          <TolerationTemplte></TolerationTemplte>
+        </el-tab-pane>
+        <!-- <el-tab-pane label="ALB"></el-tab-pane> -->
+        <!-- <el-tab-pane label="ACL"></el-tab-pane> -->
       </el-tabs>
     </el-card>
   </div>
 </template>
 
 <script>
+import AffinityTmplate from "./affinity.vue";
+import TolerationTemplte from "./toleration.vue";
+
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
@@ -54,6 +62,10 @@ const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 
 export default {
   name: "OpenxApp",
+  components: {
+    AffinityTmplate,
+    TolerationTemplte,
+  },
   computed: {
     ...mapGetters(["message", "namespace"]),
   },
@@ -71,10 +83,12 @@ export default {
   },
   data() {
     return {
+      active_tab: "Openx",
       openx_list: [],
     };
   },
   methods: {
+    tab_click(tab) {},
     get_openx_list(ns) {
       const senddata = initSocketData(
         ns,
