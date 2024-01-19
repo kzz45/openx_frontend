@@ -1,35 +1,29 @@
-import Cookies from "js-cookie";
+// import Cookies from "js-cookie";
 
 const TokenKeyName = "k8s_token";
 const TokenKeyExpire = "k8s_token_expire";
 
 export function getToken() {
-  // return Cookies.get(TokenKeyName);
   return localStorage.getItem(TokenKeyName);
 }
 
 export function getTokenExpire() {
-  // return Cookies.get(TokenKeyExpire);
   return localStorage.getItem(TokenKeyExpire);
 }
 
 export function setToken(token) {
-  // return Cookies.set(TokenKeyName, token);
   return localStorage.setItem(TokenKeyName, token);
 }
 
 export function setTokenExpire(token_expire) {
-  // return Cookies.set(TokenKeyExpire, token_expire);
   return localStorage.setItem(TokenKeyExpire, token_expire);
 }
 
 export function removeToken() {
-  // return Cookies.remove(TokenKeyName);
-  return localStorage.removeItem(TokenKeyExpire);
+  return localStorage.removeItem(TokenKeyName);
 }
 
 export function removeTokenExpire() {
-  // return Cookies.remove(TokenKeyExpire);
   return localStorage.removeItem(TokenKeyExpire);
 }
 

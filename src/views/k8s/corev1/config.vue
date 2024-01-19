@@ -390,10 +390,11 @@ export default {
       secret_dialog: false,
     };
   },
-  mounted() {
+  created() {
     let ns = localStorage.getItem("k8s_namespace");
     this.get_configmap_list(ns);
   },
+  mounted() {},
   watch: {
     message: function () {
       this.socket_onmessage(this.message);
@@ -577,6 +578,7 @@ export default {
     },
     // --------------------------------------------------
     socket_onmessage(msg) {
+      let ns = localStorage.getItem("k8s_namespace");
       const result = protoRequest.Response.decode(msg);
       if (result.code === 1) {
         const err_msg = String.fromCharCode.apply(null, result.raw);
@@ -588,7 +590,7 @@ export default {
 
       if (
         result.verb === "list" &&
-        result.namespace === this.namespace &&
+        result.namespace === ns &&
         result.groupVersionKind.kind === "ConfigMap"
       ) {
         const configmap_list = protoApi["core"]["v1"][
@@ -607,7 +609,7 @@ export default {
         }
       } else if (
         result.verb === "update" &&
-        result.namespace === this.namespace &&
+        result.namespace === ns &&
         result.groupVersionKind.kind === "ConfigMap"
       ) {
         //
@@ -619,7 +621,7 @@ export default {
         this.get_configmap_list(this.namespace);
       } else if (
         result.verb === "list" &&
-        result.namespace === this.namespace &&
+        result.namespace === ns &&
         result.groupVersionKind.kind === "Secret"
       ) {
         const secret_list = protoApi["core"]["v1"][

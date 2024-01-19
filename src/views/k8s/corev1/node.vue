@@ -110,6 +110,7 @@ import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
+const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 
 import MetaData from "../components/metadata.vue";
 
@@ -157,8 +158,12 @@ export default {
       this.socket_onmessage(this.message);
     },
   },
+  created() {
+    let ns = localStorage.getItem("k8s_namespace");
+    this.get_node_list(ns);
+  },
   mounted() {
-    this.get_node_list();
+    // this.get_node_list();
     // console.log(this.node_list);
   },
   data() {
@@ -171,10 +176,37 @@ export default {
     };
   },
   methods: {
-    tab_click() {},
-    get_node_list() {
-      let ns = localStorage.getItem("k8s_namespace");
+    tab_click(tab) {
+      if (tab.name === "node") {
+        let ns = localStorage.getItem("k8s_namespace");
+        this.get_node_list(ns);
+      } else if (tab.name === "affinity") {
+        let ns = localStorage.getItem("k8s_namespace");
+        this.get_affinity_list(ns);
+      } else if (tab.name === "toleration") {
+        let ns = localStorage.getItem("k8s_namespace");
+        this.get_toleration_list(ns);
+      }
+    },
+    get_node_list(ns) {
       const senddata = initSocketData(ns, "core-v1-Node", "list");
+      sendSocketMessage(senddata, store);
+    },
+    // 亲和性
+    get_affinity_list(ns) {
+      const senddata = initSocketData(
+        ns,
+        "openx.neverdown.org-v1-Affinity",
+        "list"
+      );
+      sendSocketMessage(senddata, store);
+    },
+    get_toleration_list(ns) {
+      const senddata = initSocketData(
+        ns,
+        "openx.neverdown.org-v1-Toleration",
+        "list"
+      );
       sendSocketMessage(senddata, store);
     },
     socket_onmessage(msg) {
@@ -187,11 +219,14 @@ export default {
           message: err_msg,
         });
       }
-      if (result.verb === "list" && result.namespace === ns) {
+      if (
+        result.verb === "list" &&
+        result.namespace === ns &&
+        result.groupVersionKind.kind === "Node"
+      ) {
         const node_list = protoApi["core"]["v1"][
           `${result.groupVersionKind.kind}List`
         ].decode(result.raw).items;
-        // console.log(node_list);
         node_list.sort((itemA, itemB) => {
           return (
             itemB.metadata.creationTimestamp.seconds -
@@ -202,6 +237,24 @@ export default {
         for (let node of node_list) {
           this.node_list.push(node);
         }
+      } else if (
+        result.verb === "list" &&
+        result.namespace === ns &&
+        result.groupVersionKind.kind === "Affinity"
+      ) {
+        const affinity_list = protoOpenx["v1"][
+          `${result.groupVersionKind.kind}List`
+        ].decode(result.raw).items;
+        console.log(affinity_list, "=====");
+      } else if (
+        result.verb === "list" &&
+        result.namespace === ns &&
+        result.groupVersionKind.kind === "Toleration"
+      ) {
+        const toleration_list = protoOpenx["v1"][
+          `${result.groupVersionKind.kind}List`
+        ].decode(result.raw).items;
+        console.log(toleration_list, "=====");
       }
     },
   },
