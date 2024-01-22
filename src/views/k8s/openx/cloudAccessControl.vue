@@ -4,7 +4,7 @@
       type="primary"
       size="small"
       icon="el-icon-plus"
-      @click="create_alb"
+      @click="create_acl"
       >新增</el-button
     >
     <el-table :data="alb_list" size="small" empty-text="啥也没有" border>
@@ -28,14 +28,14 @@
             type="primary"
             icon="el-icon-edit"
             size="small"
-            @click="update_alb(scoped.row)"
+            @click="update_acl(scoped.row)"
           ></el-button>
           <el-popconfirm
             title="确定删除吗？"
             confirm-button-text="确定"
             cancel-button-text="不了"
             style="margin-left: 10px"
-            @confirm="delete_alb(scoped.row)"
+            @confirm="delete_acl(scoped.row)"
             @cancel="cancel_delete"
           >
             <el-button
@@ -51,29 +51,29 @@
 
     <el-dialog
       :title="textMap[dialogStatus]"
-      :visible.sync="alb_dialog"
+      :visible.sync="acl_dialog"
       scrollable
       width="60%"
     >
       <el-form
-        ref="alb_obj_refs"
-        :model="alb_obj"
+        ref="acl_obj_refs"
+        :model="acl_obj"
         size="small"
         label-width="80px"
       >
         <el-form-item label="instance" prop="instance">
-          <el-input v-model="alb_obj.spec.instance.value"></el-input>
+          <el-input v-model="acl_obj.spec.instance.value"></el-input>
         </el-form-item>
         <el-form-item label="overrideListeners" prop="overrideListeners">
-          <el-select v-model="alb_obj.spec.overrideListeners.value">
+          <el-select v-model="acl_obj.spec.overrideListeners.value">
             <el-option label="true" :value="true"></el-option>
             <el-option label="false" :value="false"></el-option>
           </el-select>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button size="small" @click="alb_dialog = false">取 消</el-button>
-        <el-button type="primary" size="small" @click="submit_alb"
+        <el-button size="small" @click="acl_dialog = false">取 消</el-button>
+        <el-button type="primary" size="small" @click="submit_acl"
           >确 定</el-button
         >
       </span>
@@ -91,7 +91,7 @@ const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 import { initSocketData, updateSocketData, sendSocketMessage } from "@/api/k8s";
 
-const AlbObj = {
+const AclObj = {
   metadata: {
     name: "",
     namespace: localStorage.getItem("k8s_namespace"),
@@ -133,13 +133,13 @@ export default {
   data() {
     return {
       textMap: {
-        create_alb: "新增",
-        update_alb: "编辑",
+        create_acl: "新增",
+        update_acl: "编辑",
       },
       dialogStatus: "",
-      alb_dialog: false,
+      acl_dialog: false,
       alb_list: [],
-      alb_obj: {
+      acl_obj: {
         metadata: {
           name: "",
           namespace: "",
@@ -163,20 +163,20 @@ export default {
     };
   },
   methods: {
-    create_alb() {
-      this.alb_dialog = true;
-      this.dialogStatus = "create_alb";
-      this.alb_obj = Object.assign({}, AlbObj);
+    create_acl() {
+      this.acl_dialog = true;
+      this.dialogStatus = "create_acl";
+      this.acl_obj = Object.assign({}, AclObj);
     },
-    update_alb(row) {
-      this.alb_dialog = true;
-      this.dialogStatus = "create_alb";
+    update_acl(row) {
+      this.acl_dialog = true;
+      this.dialogStatus = "create_acl";
     },
-    delete_alb(row) {},
-    submit_alb() {
-      if (this.dialogStatus === "create_alb") {
+    delete_acl(row) {},
+    submit_acl() {
+      if (this.dialogStatus === "create_acl") {
         const ns = localStorage.getItem("k8s_namespace");
-        const creata_alb_obj = {
+        const creata_acl_obj = {
           metadata: {
             name: "demo",
             namespace: ns,
@@ -193,27 +193,27 @@ export default {
           },
         };
         const message =
-          protoOpenx["v1"]["AliyunLoadBalancer"].create(creata_alb_obj);
-        const params = protoOpenx["v1"]["AliyunLoadBalancer"]
+          protoOpenx["v1"]["AliyunAccessControl"].create(creata_acl_obj);
+        const params = protoOpenx["v1"]["AliyunAccessControl"]
           .encode(message)
           .finish();
-        // console.log(creata_alb_obj, "=====================");
+        // console.log(creata_acl_obj, "=====================");
         const createdata = initSocketData(
           ns,
-          "openx.neverdown.org-v1-AliyunLoadBalancer",
+          "openx.neverdown.org-v1-AliyunAccessControl",
           "create",
           params
         );
         // console.log(createdata, "=====================");
         sendSocketMessage(createdata, store);
-      } else if (this.dialogStatus === "update_alb") {
+      } else if (this.dialogStatus === "update_acl") {
         //
       }
     },
-    get_alb_list(ns) {
+    get_acl_list(ns) {
       const senddata = initSocketData(
         ns,
-        "openx.neverdown.org-v1-AliyunLoadBalancer",
+        "openx.neverdown.org-v1-AliyunAccessControl",
         "list"
       );
       sendSocketMessage(senddata, store);
@@ -231,7 +231,7 @@ export default {
       if (
         result.verb === "list" &&
         result.namespace === ns &&
-        result.groupVersionKind.kind === "AliyunLoadBalancer"
+        result.groupVersionKind.kind === "AliyunAccessControl"
       ) {
         const alb_list = protoOpenx["v1"][
           `${result.groupVersionKind.kind}List`
