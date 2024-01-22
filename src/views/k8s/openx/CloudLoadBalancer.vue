@@ -55,13 +55,9 @@
       scrollable
       width="60%"
     >
-      <el-form
-        ref="alb_obj_refs"
-        :model="alb_obj"
-        size="small"
-        label-width="80px"
-      >
-        <el-form-item label="instance" prop="instance">
+      <el-form ref="alb_obj_refs" :model="alb_obj" size="small">
+        <MetaDataTpl></MetaDataTpl>
+        <!-- <el-form-item label="instance" prop="instance">
           <el-input v-model="alb_obj.spec.instance.value"></el-input>
         </el-form-item>
         <el-form-item label="overrideListeners" prop="overrideListeners">
@@ -69,7 +65,7 @@
             <el-option label="true" :value="true"></el-option>
             <el-option label="false" :value="false"></el-option>
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button size="small" @click="alb_dialog = false">取 消</el-button>
@@ -90,6 +86,7 @@ const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 import { initSocketData, updateSocketData, sendSocketMessage } from "@/api/k8s";
+import MetaDataTpl from "@/components/k8s/metadata";
 
 const AlbObj = {
   metadata: {
@@ -118,6 +115,9 @@ export default {
     parseTime(time, cFormat) {
       return parseTime(time, cFormat);
     },
+  },
+  components: {
+    MetaDataTpl,
   },
   computed: {
     ...mapGetters(["message", "namespace"]),
