@@ -84,7 +84,6 @@
 
 <script>
 export default {
-  filters: {},
   data() {
     return {
       textMap: {
@@ -108,6 +107,9 @@ export default {
     };
   },
   methods: {
+    update_metadata(data) {
+      console.log("from father: ", data);
+    },
     close_annotation(tag) {
       this.metadata.annotations = this.metadata.annotations.filter(
         (item) => item !== tag

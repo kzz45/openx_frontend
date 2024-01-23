@@ -55,21 +55,112 @@
       scrollable
       width="60%"
     >
-      <el-form ref="alb_obj_refs" :model="alb_obj" size="small">
-        <MetaDataTpl></MetaDataTpl>
-        <!-- <el-form-item label="instance" prop="instance">
-          <el-input v-model="alb_obj.spec.instance.value"></el-input>
-        </el-form-item>
-        <el-form-item label="overrideListeners" prop="overrideListeners">
-          <el-select v-model="alb_obj.spec.overrideListeners.value">
-            <el-option label="true" :value="true"></el-option>
-            <el-option label="false" :value="false"></el-option>
-          </el-select>
-        </el-form-item> -->
+      <el-form
+        ref="alb_obj_refs"
+        :model="alb_obj"
+        size="small"
+        label-width="100px"
+      >
+        <el-tabs v-model="dialog_tabs">
+          <el-tab-pane label="基本信息" name="metadata">
+            <el-row>
+              <el-col :span="12">
+                <el-form-item label="Name" prop="metadata.name">
+                  <el-input v-model="alb_obj.metadata.name"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="Namespace" prop="metadata.namespace">
+                  <el-input v-model="alb_obj.metadata.namespace"></el-input>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="12">
+                <el-form-item label="注解" prop="metadata.annotations">
+                  <el-button
+                    size="small"
+                    icon="el-icon-plus"
+                    @click="add_annotations"
+                  ></el-button>
+                  <el-tag
+                    v-for="tag in alb_obj.metadata.annotations"
+                    :key="tag.label"
+                    closable
+                    @close="close_annotation(tag)"
+                    >{{ tag.label }}:{{ tag.value }}</el-tag
+                  >
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="标签" prop="metadata.labels">
+                  <el-button
+                    size="small"
+                    icon="el-icon-plus"
+                    @click="add_labels"
+                  ></el-button>
+                  <el-tag
+                    v-for="tag in alb_obj.metadata.labels"
+                    :key="tag.label"
+                    @close="close_label(tag)"
+                    closable
+                    >{{ tag.label }}:{{ tag.value }}</el-tag
+                  >
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-tab-pane>
+
+          <el-tab-pane label="规格" name="spec">
+            <el-row>
+              <el-col :span="12">
+                <el-form-item label="负责均衡ID" prop="spec.instance">
+                  <el-input
+                    v-model="alb_obj.spec.instance.value"
+                  ></el-input> </el-form-item
+              ></el-col>
+              <el-col :span="12">
+                <el-form-item label="覆盖监听" prop="spec.overrideListeners">
+                  <el-select v-model="alb_obj.spec.overrideListeners.value">
+                    <el-option label="true" :value="true"></el-option>
+                    <el-option label="false" :value="false"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-tab-pane>
+        </el-tabs>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button size="small" @click="alb_dialog = false">取 消</el-button>
         <el-button type="primary" size="small" @click="submit_alb"
+          >确 定</el-button
+        >
+      </span>
+    </el-dialog>
+
+    <el-dialog
+      :title="textMap[kv_dialog_status]"
+      :visible.sync="kv_dialog"
+      append-to-body
+    >
+      <el-form size="small">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="label">
+              <el-input v-model="kv_tag.label"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="value">
+              <el-input v-model="kv_tag.value"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button size="small" @click="kv_dialog = false">取 消</el-button>
+        <el-button type="primary" size="small" @click="submit_kv"
           >确 定</el-button
         >
       </span>
@@ -100,11 +191,11 @@ const AlbObj = {
   },
   spec: {
     instance: {
-      key: "",
+      key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id",
       value: "",
     },
     overrideListeners: {
-      key: "",
+      key: "service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners",
       value: "",
     },
   },
@@ -135,9 +226,20 @@ export default {
       textMap: {
         create_alb: "新增",
         update_alb: "编辑",
+        create_annotation: "新增注解",
+        update_annotation: "编辑注解",
+        create_label: "新增标签",
+        update_label: "编辑标签",
       },
       dialogStatus: "",
       alb_dialog: false,
+      dialog_tabs: "metadata",
+      kv_tag: {
+        label: "",
+        value: "",
+      },
+      kv_dialog: false,
+      kv_dialog_status: "",
       alb_list: [],
       alb_obj: {
         metadata: {
@@ -145,17 +247,14 @@ export default {
           namespace: "",
           annotations: {},
           labels: {},
-          creationTimestamp: {
-            seconds: 0,
-          },
         },
         spec: {
           instance: {
-            key: "",
+            key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id",
             value: "",
           },
           overrideListeners: {
-            key: "",
+            key: "service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners",
             value: "",
           },
         },
@@ -171,41 +270,47 @@ export default {
     update_alb(row) {
       this.alb_dialog = true;
       this.dialogStatus = "create_alb";
+      this.alb_obj = Object.assign({}, row);
+      // console.log(this.alb_obj.metadata, "====");
     },
-    delete_alb(row) {},
+    delete_alb(row) {
+      this.alb_obj = Object.assign({}, row);
+      const ns = localStorage.getItem("k8s_namespace");
+      const message = protoOpenx["v1"]["AliyunLoadBalancer"].create(
+        this.alb_obj
+      );
+      const params = protoOpenx["v1"]["AliyunLoadBalancer"]
+        .encode(message)
+        .finish();
+      const createdata = initSocketData(
+        ns,
+        "openx.neverdown.org-v1-AliyunLoadBalancer",
+        "delete",
+        params
+      );
+      sendSocketMessage(createdata, store);
+      this.get_alb_list(ns);
+    },
     submit_alb() {
       if (this.dialogStatus === "create_alb") {
         const ns = localStorage.getItem("k8s_namespace");
-        const creata_alb_obj = {
-          metadata: {
-            name: "demo",
-            namespace: ns,
-          },
-          spec: {
-            instance: {
-              key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id",
-              value: "lb-2ze6mc3pyhuvjs0sxt59k",
-            },
-            overrideListeners: {
-              key: "service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners",
-              value: "true",
-            },
-          },
-        };
-        const message =
-          protoOpenx["v1"]["AliyunLoadBalancer"].create(creata_alb_obj);
-        const params = protoOpenx["v1"]["AliyunLoadBalancer"]
-          .encode(message)
-          .finish();
-        // console.log(creata_alb_obj, "=====================");
-        const createdata = initSocketData(
-          ns,
-          "openx.neverdown.org-v1-AliyunLoadBalancer",
-          "create",
-          params
-        );
-        // console.log(createdata, "=====================");
-        sendSocketMessage(createdata, store);
+
+        console.log(this.alb_obj, "====");
+
+        // const message = protoOpenx["v1"]["AliyunLoadBalancer"].create(
+        //   this.alb_obj
+        // );
+        // const params = protoOpenx["v1"]["AliyunLoadBalancer"]
+        //   .encode(message)
+        //   .finish();
+        // const createdata = initSocketData(
+        //   ns,
+        //   "openx.neverdown.org-v1-AliyunLoadBalancer",
+        //   "create",
+        //   params
+        // );
+        // sendSocketMessage(createdata, store);
+        this.alb_dialog = false;
       } else if (this.dialogStatus === "update_alb") {
         //
       }
@@ -247,6 +352,40 @@ export default {
         for (let node of alb_list) {
           this.alb_list.push(node);
         }
+      }
+    },
+    add_annotations() {
+      this.kv_dialog = true;
+      this.kv_dialog_status = "create_annotation";
+    },
+    close_annotation(tag) {
+      this.alb_obj.metadata.annotations =
+        this.alb_obj.metadata.annotations.filter((item) => item !== tag);
+    },
+    add_labels() {
+      this.kv_dialog = true;
+      this.kv_dialog_status = "create_label";
+    },
+    close_label(tag) {
+      this.alb_obj.metadata.labels = this.alb_obj.metadata.labels.filter(
+        (item) => item !== tag
+      );
+    },
+    submit_kv() {
+      if (this.kv_dialog_status === "create_annotation") {
+        this.alb_obj.metadata.annotations = Object.assign([]);
+        this.alb_obj.metadata.annotations.push({
+          label: this.kv_tag.label,
+          value: this.kv_tag.value,
+        });
+        this.kv_dialog = false;
+      } else if (this.kv_dialog_status === "create_label") {
+        this.alb_obj.metadata.labels = Object.assign([]);
+        this.alb_obj.metadata.labels.push({
+          label: this.kv_tag.label,
+          value: this.kv_tag.value,
+        });
+        this.kv_dialog = false;
       }
     },
     cancel_delete() {
