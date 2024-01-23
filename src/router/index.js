@@ -20,7 +20,7 @@ export const constantRoutes = [
   {
     path: "/",
     component: () => import("@/views/dashboard/namespace"),
-    meta: { title: "命名空间", icon: "home" },
+    meta: { title: "首页", icon: "home" },
   },
 
   {
@@ -91,7 +91,7 @@ export const constantRoutes = [
         name: "Pod",
         component: () => import("@/views/k8s/corev1/pod"),
         meta: {
-          title: "容器",
+          title: "容器列表",
           icon: "pod",
         },
       },
@@ -100,7 +100,7 @@ export const constantRoutes = [
         name: "Service",
         component: () => import("@/views/k8s/corev1/service"),
         meta: {
-          title: "服务",
+          title: "服务列表",
           icon: "svc",
         },
       },
@@ -109,7 +109,7 @@ export const constantRoutes = [
         name: "ConfigMap",
         component: () => import("@/views/k8s/corev1/config"),
         meta: {
-          title: "配置",
+          title: "配置项",
           icon: "cm",
         },
       },
@@ -118,7 +118,7 @@ export const constantRoutes = [
         name: "Node",
         component: () => import("@/views/k8s/corev1/node"),
         meta: {
-          title: "节点",
+          title: "节点列表",
           icon: "node",
         },
       },
@@ -127,7 +127,7 @@ export const constantRoutes = [
         name: "Secret",
         component: () => import("@/views/k8s/corev1/secret"),
         meta: {
-          title: "秘钥",
+          title: "保密字典",
           icon: "secret",
         },
       },
@@ -136,7 +136,7 @@ export const constantRoutes = [
         name: "Event",
         component: () => import("@/views/k8s/corev1/event"),
         meta: {
-          title: "事件",
+          title: "事件中心",
           icon: "event",
         },
       },
@@ -192,20 +192,20 @@ export const constantRoutes = [
     meta: { title: "角色控制", icon: "auth" },
     children: [
       {
-        path: "deploy",
-        name: "Deploy",
+        path: "clusterrole",
+        name: "ClusterRole",
         component: () => import("@/views/k8s/rbacv1/clusterrole"),
         meta: {
-          title: "Deployment",
+          title: "集群角色",
           icon: "deployment",
         },
       },
       {
-        path: "statefulset",
-        name: "StatefulSet",
+        path: "clusterrolebinding",
+        name: "ClusterRoleBinding",
         component: () => import("@/views/k8s/rbacv1/clusterrolebinding"),
         meta: {
-          title: "StatefulSet",
+          title: "角色绑定",
           icon: "build",
         },
       },
