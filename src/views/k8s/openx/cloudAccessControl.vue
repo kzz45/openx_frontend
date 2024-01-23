@@ -1,83 +1,85 @@
 <template>
-  <div>
-    <el-button
-      type="primary"
-      size="small"
-      icon="el-icon-plus"
-      @click="create_acl"
-      >新增</el-button
-    >
-    <el-table :data="alb_list" size="small" empty-text="啥也没有" border>
-      <el-table-column type="selection" width="55"> </el-table-column>
-      <el-table-column label="名称" prop="metadata.name"></el-table-column>
-      <el-table-column
-        label="命名空间"
-        prop="metadata.namespace"
-      ></el-table-column>
-      <el-table-column label="创建时间">
-        <template slot-scope="scoped">
-          {{
-            scoped.row.metadata.creationTimestamp.seconds
-              | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-          }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="120px;">
-        <template slot-scope="scoped">
-          <el-button
-            type="primary"
-            icon="el-icon-edit"
-            size="small"
-            @click="update_acl(scoped.row)"
-          ></el-button>
-          <el-popconfirm
-            title="确定删除吗？"
-            confirm-button-text="确定"
-            cancel-button-text="不了"
-            style="margin-left: 10px"
-            @confirm="delete_acl(scoped.row)"
-            @cancel="cancel_delete"
-          >
-            <el-button
-              slot="reference"
-              type="danger"
-              icon="el-icon-delete"
-              size="small"
-            ></el-button>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <el-dialog
-      :title="textMap[dialogStatus]"
-      :visible.sync="acl_dialog"
-      scrollable
-      width="60%"
-    >
-      <el-form
-        ref="acl_obj_refs"
-        :model="acl_obj"
+  <div class="app-container">
+    <el-card class="box-card">
+      <el-button
+        type="primary"
         size="small"
-        label-width="80px"
+        icon="el-icon-plus"
+        @click="create_acl"
+        >新增</el-button
       >
-        <el-form-item label="instance" prop="instance">
-          <el-input v-model="acl_obj.spec.instance.value"></el-input>
-        </el-form-item>
-        <el-form-item label="overrideListeners" prop="overrideListeners">
-          <el-select v-model="acl_obj.spec.overrideListeners.value">
-            <el-option label="true" :value="true"></el-option>
-            <el-option label="false" :value="false"></el-option>
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button size="small" @click="acl_dialog = false">取 消</el-button>
-        <el-button type="primary" size="small" @click="submit_acl"
-          >确 定</el-button
+      <el-table :data="alb_list" size="small" empty-text="啥也没有" border>
+        <el-table-column type="selection" width="55"> </el-table-column>
+        <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column
+          label="命名空间"
+          prop="metadata.namespace"
+        ></el-table-column>
+        <el-table-column label="创建时间">
+          <template slot-scope="scoped">
+            {{
+              scoped.row.metadata.creationTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120px;">
+          <template slot-scope="scoped">
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="small"
+              @click="update_acl(scoped.row)"
+            ></el-button>
+            <el-popconfirm
+              title="确定删除吗？"
+              confirm-button-text="确定"
+              cancel-button-text="不了"
+              style="margin-left: 10px"
+              @confirm="delete_acl(scoped.row)"
+              @cancel="cancel_delete"
+            >
+              <el-button
+                slot="reference"
+                type="danger"
+                icon="el-icon-delete"
+                size="small"
+              ></el-button>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="acl_dialog"
+        scrollable
+        width="60%"
+      >
+        <el-form
+          ref="acl_obj_refs"
+          :model="acl_obj"
+          size="small"
+          label-width="80px"
         >
-      </span>
-    </el-dialog>
+          <el-form-item label="instance" prop="instance">
+            <el-input v-model="acl_obj.spec.instance.value"></el-input>
+          </el-form-item>
+          <el-form-item label="overrideListeners" prop="overrideListeners">
+            <el-select v-model="acl_obj.spec.overrideListeners.value">
+              <el-option label="true" :value="true"></el-option>
+              <el-option label="false" :value="false"></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="acl_dialog = false">取 消</el-button>
+          <el-button type="primary" size="small" @click="submit_acl"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
+    </el-card>
   </div>
 </template>
 

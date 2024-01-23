@@ -1,170 +1,172 @@
 <template>
-  <div>
-    <el-button
-      type="primary"
-      size="small"
-      icon="el-icon-plus"
-      @click="create_alb"
-      >新增</el-button
-    >
-    <el-table :data="alb_list" size="small" empty-text="啥也没有" border>
-      <el-table-column type="selection" width="55"> </el-table-column>
-      <el-table-column label="名称" prop="metadata.name"></el-table-column>
-      <el-table-column
-        label="命名空间"
-        prop="metadata.namespace"
-      ></el-table-column>
-      <el-table-column label="创建时间">
-        <template slot-scope="scoped">
-          {{
-            scoped.row.metadata.creationTimestamp.seconds
-              | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-          }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="120px;">
-        <template slot-scope="scoped">
-          <el-button
-            type="primary"
-            icon="el-icon-edit"
-            size="small"
-            @click="update_alb(scoped.row)"
-          ></el-button>
-          <el-popconfirm
-            title="确定删除吗？"
-            confirm-button-text="确定"
-            cancel-button-text="不了"
-            style="margin-left: 10px"
-            @confirm="delete_alb(scoped.row)"
-            @cancel="cancel_delete"
-          >
-            <el-button
-              slot="reference"
-              type="danger"
-              icon="el-icon-delete"
-              size="small"
-            ></el-button>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <el-dialog
-      :title="textMap[dialogStatus]"
-      :visible.sync="alb_dialog"
-      scrollable
-      width="60%"
-    >
-      <el-form
-        ref="alb_obj_refs"
-        :model="alb_obj"
+  <div class="app-container">
+    <el-card class="box-card">
+      <el-button
+        type="primary"
         size="small"
-        label-width="100px"
+        icon="el-icon-plus"
+        @click="create_alb"
+        >新增</el-button
       >
-        <el-tabs v-model="dialog_tabs">
-          <el-tab-pane label="基本信息" name="metadata">
-            <el-row>
-              <el-col :span="12">
-                <el-form-item label="Name" prop="metadata.name">
-                  <el-input v-model="alb_obj.metadata.name"></el-input>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="Namespace" prop="metadata.namespace">
-                  <el-input v-model="alb_obj.metadata.namespace"></el-input>
-                </el-form-item>
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="12">
-                <el-form-item label="注解" prop="metadata.annotations">
-                  <el-button
-                    size="small"
-                    icon="el-icon-plus"
-                    @click="add_annotations"
-                  ></el-button>
-                  <el-tag
-                    v-for="tag in alb_obj.metadata.annotations"
-                    :key="tag.label"
-                    closable
-                    @close="close_annotation(tag)"
-                    >{{ tag.label }}:{{ tag.value }}</el-tag
-                  >
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="标签" prop="metadata.labels">
-                  <el-button
-                    size="small"
-                    icon="el-icon-plus"
-                    @click="add_labels"
-                  ></el-button>
-                  <el-tag
-                    v-for="tag in alb_obj.metadata.labels"
-                    :key="tag.label"
-                    @close="close_label(tag)"
-                    closable
-                    >{{ tag.label }}:{{ tag.value }}</el-tag
-                  >
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-tab-pane>
+      <el-table :data="alb_list" size="small" empty-text="啥也没有" border>
+        <el-table-column type="selection" width="55"> </el-table-column>
+        <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column
+          label="命名空间"
+          prop="metadata.namespace"
+        ></el-table-column>
+        <el-table-column label="创建时间">
+          <template slot-scope="scoped">
+            {{
+              scoped.row.metadata.creationTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120px;">
+          <template slot-scope="scoped">
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="small"
+              @click="update_alb(scoped.row)"
+            ></el-button>
+            <el-popconfirm
+              title="确定删除吗？"
+              confirm-button-text="确定"
+              cancel-button-text="不了"
+              style="margin-left: 10px"
+              @confirm="delete_alb(scoped.row)"
+              @cancel="cancel_delete"
+            >
+              <el-button
+                slot="reference"
+                type="danger"
+                icon="el-icon-delete"
+                size="small"
+              ></el-button>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
 
-          <el-tab-pane label="规格" name="spec">
-            <el-row>
-              <el-col :span="12">
-                <el-form-item label="负责均衡ID" prop="spec.instance">
-                  <el-input
-                    v-model="alb_obj.spec.instance.value"
-                  ></el-input> </el-form-item
-              ></el-col>
-              <el-col :span="12">
-                <el-form-item label="覆盖监听" prop="spec.overrideListeners">
-                  <el-select v-model="alb_obj.spec.overrideListeners.value">
-                    <el-option label="true" :value="true"></el-option>
-                    <el-option label="false" :value="false"></el-option>
-                  </el-select>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-tab-pane>
-        </el-tabs>
-      </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button size="small" @click="alb_dialog = false">取 消</el-button>
-        <el-button type="primary" size="small" @click="submit_alb"
-          >确 定</el-button
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="alb_dialog"
+        scrollable
+        width="60%"
+      >
+        <el-form
+          ref="alb_obj_refs"
+          :model="alb_obj"
+          size="small"
+          label-width="100px"
         >
-      </span>
-    </el-dialog>
+          <el-tabs v-model="dialog_tabs">
+            <el-tab-pane label="基本信息" name="metadata">
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="Name" prop="metadata.name">
+                    <el-input v-model="alb_obj.metadata.name"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="Namespace" prop="metadata.namespace">
+                    <el-input v-model="alb_obj.metadata.namespace"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="注解" prop="metadata.annotations">
+                    <el-button
+                      size="small"
+                      icon="el-icon-plus"
+                      @click="add_annotations"
+                    ></el-button>
+                    <el-tag
+                      v-for="tag in alb_obj.metadata.annotations"
+                      :key="tag.label"
+                      closable
+                      @close="close_annotation(tag)"
+                      >{{ tag.label }}:{{ tag.value }}</el-tag
+                    >
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="标签" prop="metadata.labels">
+                    <el-button
+                      size="small"
+                      icon="el-icon-plus"
+                      @click="add_labels"
+                    ></el-button>
+                    <el-tag
+                      v-for="tag in alb_obj.metadata.labels"
+                      :key="tag.label"
+                      @close="close_label(tag)"
+                      closable
+                      >{{ tag.label }}:{{ tag.value }}</el-tag
+                    >
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
 
-    <el-dialog
-      :title="textMap[kv_dialog_status]"
-      :visible.sync="kv_dialog"
-      append-to-body
-    >
-      <el-form size="small">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="label">
-              <el-input v-model="kv_tag.label"></el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="value">
-              <el-input v-model="kv_tag.value"></el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button size="small" @click="kv_dialog = false">取 消</el-button>
-        <el-button type="primary" size="small" @click="submit_kv"
-          >确 定</el-button
-        >
-      </span>
-    </el-dialog>
+            <el-tab-pane label="规格" name="spec">
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="负责均衡ID" prop="spec.instance">
+                    <el-input
+                      v-model="alb_obj.spec.instance.value"
+                    ></el-input> </el-form-item
+                ></el-col>
+                <el-col :span="12">
+                  <el-form-item label="覆盖监听" prop="spec.overrideListeners">
+                    <el-select v-model="alb_obj.spec.overrideListeners.value">
+                      <el-option label="true" :value="true"></el-option>
+                      <el-option label="false" :value="false"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
+          </el-tabs>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="alb_dialog = false">取 消</el-button>
+          <el-button type="primary" size="small" @click="submit_alb"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
+
+      <el-dialog
+        :title="textMap[kv_dialog_status]"
+        :visible.sync="kv_dialog"
+        append-to-body
+      >
+        <el-form size="small">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="label">
+                <el-input v-model="kv_tag.label"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="value">
+                <el-input v-model="kv_tag.value"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="kv_dialog = false">取 消</el-button>
+          <el-button type="primary" size="small" @click="submit_kv"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
+    </el-card>
   </div>
 </template>
 

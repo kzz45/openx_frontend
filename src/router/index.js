@@ -1,5 +1,6 @@
 import Vue from "vue";
 import Router from "vue-router";
+import Layout from "@/layout";
 import k8sRoute from "./k8s";
 Vue.use(Router);
 
@@ -21,10 +22,199 @@ export const constantRoutes = [
     component: () => import("@/views/dashboard/namespace"),
     meta: { title: "命名空间", icon: "home" },
   },
+
+  {
+    path: "/k8s",
+    name: "OpenX",
+    component: Layout,
+    redirect: "/k8s/openx",
+    meta: {
+      title: "OpenX",
+      icon: "x",
+    },
+    children: [
+      {
+        path: "openx",
+        name: "OPENX",
+        component: () => import("@/views/k8s/openx/openx"),
+        meta: {
+          title: "应用列表",
+          icon: "build",
+        },
+      },
+      {
+        path: "alb",
+        name: "Alb",
+        component: () => import("@/views/k8s/openx/cloudLoadBalancer"),
+        meta: {
+          title: "负责均衡",
+          icon: "cm",
+        },
+      },
+      {
+        path: "acl",
+        name: "Acl",
+        component: () => import("@/views/k8s/openx/cloudAccessControl"),
+        meta: {
+          title: "访问控制",
+          icon: "cm",
+        },
+      },
+      {
+        path: "affinity",
+        name: "Affinity",
+        component: () => import("@/views/k8s/openx/affinity"),
+        meta: {
+          title: "亲和性",
+          icon: "svc",
+        },
+      },
+      {
+        path: "toleration",
+        name: "Toleration",
+        component: () => import("@/views/k8s/openx/toleration"),
+        meta: {
+          title: "容忍性",
+          icon: "cm",
+        },
+      },
+    ],
+  },
+
+  {
+    path: "/corev1",
+    component: Layout,
+    meta: { title: "核心应用", icon: "corev1" },
+    children: [
+      {
+        path: "pod",
+        name: "Pod",
+        component: () => import("@/views/k8s/corev1/pod"),
+        meta: {
+          title: "容器",
+          icon: "pod",
+        },
+      },
+      {
+        path: "service",
+        name: "Service",
+        component: () => import("@/views/k8s/corev1/service"),
+        meta: {
+          title: "服务",
+          icon: "svc",
+        },
+      },
+      {
+        path: "configmap",
+        name: "ConfigMap",
+        component: () => import("@/views/k8s/corev1/config"),
+        meta: {
+          title: "配置",
+          icon: "cm",
+        },
+      },
+      {
+        path: "node",
+        name: "Node",
+        component: () => import("@/views/k8s/corev1/node"),
+        meta: {
+          title: "节点",
+          icon: "node",
+        },
+      },
+      {
+        path: "secret",
+        name: "Secret",
+        component: () => import("@/views/k8s/corev1/secret"),
+        meta: {
+          title: "秘钥",
+          icon: "secret",
+        },
+      },
+      {
+        path: "event",
+        name: "Event",
+        component: () => import("@/views/k8s/corev1/event"),
+        meta: {
+          title: "事件",
+          icon: "event",
+        },
+      },
+      {
+        path: "serviceaccount",
+        name: "ServiceAccount",
+        component: () => import("@/views/k8s/corev1/serviceaccount"),
+        meta: {
+          title: "服务账户",
+          icon: "serviceaccount",
+        },
+      },
+      {
+        path: "namespace",
+        name: "Namespace",
+        component: () => import("@/views/k8s/corev1/namespace"),
+        meta: {
+          title: "命名空间",
+          icon: "node",
+        },
+      },
+    ],
+  },
+  {
+    path: "/appsv1",
+    component: Layout,
+    meta: { title: "原生应用", icon: "kubernetes" },
+    children: [
+      {
+        path: "deploy",
+        name: "Deploy",
+        component: () => import("@/views/k8s/appsv1/deployment"),
+        meta: {
+          title: "Deployment",
+          icon: "deploy",
+        },
+      },
+      {
+        path: "statefulset",
+        name: "StatefulSet",
+        component: () => import("@/views/k8s/appsv1/statefulset"),
+        meta: {
+          title: "StatefulSet",
+          icon: "build",
+        },
+      },
+    ],
+  },
+
+  {
+    path: "/rbacv1",
+    component: Layout,
+    meta: { title: "角色控制", icon: "auth" },
+    children: [
+      {
+        path: "deploy",
+        name: "Deploy",
+        component: () => import("@/views/k8s/rbacv1/clusterrole"),
+        meta: {
+          title: "Deployment",
+          icon: "deployment",
+        },
+      },
+      {
+        path: "statefulset",
+        name: "StatefulSet",
+        component: () => import("@/views/k8s/rbacv1/clusterrolebinding"),
+        meta: {
+          title: "StatefulSet",
+          icon: "build",
+        },
+      },
+    ],
+  },
 ];
 
 export const asyncRouter = [
-  ...k8sRoute,
+  // ...k8sRoute,
   // 404 page must be placed at the end !!!
   { path: "*", redirect: "/404", hidden: true },
 ];

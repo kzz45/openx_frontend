@@ -1,44 +1,46 @@
 <template>
-  <div>
-    <el-button
-      type="primary"
-      size="small"
-      icon="el-icon-plus"
-      @click="create_affinity"
-      >新增</el-button
-    >
-    <el-table
-      :data="affinity_list"
-      size="small"
-      empty-text="啥也没有"
-      border
-    ></el-table>
-
-    <el-dialog
-      :title="textMap[dialogStatus]"
-      :visible.sync="affinity_dialog"
-      scrollable
-      width="60%"
-    >
-      <el-form
-        ref="affinity_obj_refs"
-        :model="affinity_obj"
+  <div class="app-container">
+    <el-card class="box-card">
+      <el-button
+        type="primary"
         size="small"
-        label-width="80px"
+        icon="el-icon-plus"
+        @click="create_affinity"
+        >新增</el-button
       >
-        <el-form-item label="instance" prop=""></el-form-item>
-        <el-form-item label="status" prop=""></el-form-item>
-        <el-form-item label="type" prop=""></el-form-item>
-      </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button size="small" @click="affinity_dialog = false"
-          >取 消</el-button
+      <el-table
+        :data="affinity_list"
+        size="small"
+        empty-text="啥也没有"
+        border
+      ></el-table>
+
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="affinity_dialog"
+        scrollable
+        width="60%"
+      >
+        <el-form
+          ref="affinity_obj_refs"
+          :model="affinity_obj"
+          size="small"
+          label-width="80px"
         >
-        <el-button type="primary" size="small" @click="submit_affinity"
-          >确 定</el-button
-        >
-      </span>
-    </el-dialog>
+          <el-form-item label="instance" prop=""></el-form-item>
+          <el-form-item label="status" prop=""></el-form-item>
+          <el-form-item label="type" prop=""></el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="affinity_dialog = false"
+            >取 消</el-button
+          >
+          <el-button type="primary" size="small" @click="submit_affinity"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
+    </el-card>
   </div>
 </template>
 

@@ -73,7 +73,7 @@ export default {
       // console.log(ns);
       localStorage.setItem("k8s_namespace", ns);
       // routerToNs(ns);
-      router.push({ path: "/k8s/pod" });
+      router.push({ path: "/corev1/pod" });
     },
     handler_command(command) {
       if (command === "logout") {
