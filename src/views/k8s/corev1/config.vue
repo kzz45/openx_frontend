@@ -1,17 +1,14 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-tabs v-model="active_tab" @tab-click="tab_click">
-        <!-- -------------------------------------------------- -->
-        <el-tab-pane label="ConfigMap" name="ConfigMap">
-          <el-button
-            type="primary"
-            size="small"
-            icon="el-icon-plus"
-            @click="create_configmap"
-            >新增</el-button
-          >
-          <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
+      <el-button
+        type="primary"
+        size="small"
+        icon="el-icon-plus"
+        @click="create_configmap"
+        >新增</el-button
+      >
+      <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
             >导入</el-button
           >
           <el-button type="primary" size="small" icon="el-icon-bottom"
@@ -26,170 +23,94 @@
           <el-button type="info" size="small" icon="el-icon-copy-document"
             >拷贝</el-button
           > -->
-          <el-table
-            :data="page_configmap_list"
-            size="small"
-            empty-text="啥也没有"
-            border
-          >
-            <el-table-column type="selection" width="50"> </el-table-column>
-            <el-table-column
-              label="名称"
-              prop="metadata.name"
-            ></el-table-column>
-            <el-table-column
-              label="命名空间"
-              prop="metadata.namespace"
-            ></el-table-column>
-            <el-table-column label="创建时间">
-              <template slot-scope="scoped">
-                {{
-                  scoped.row.metadata.creationTimestamp.seconds
-                    | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-                }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180px;">
-              <template slot-scope="scoped">
-                <el-button
-                  type="primary"
-                  icon="el-icon-edit"
-                  size="small"
-                  @click="update_configmap(scoped.row)"
-                ></el-button>
-                <el-popconfirm
-                  title="确定删除吗？"
-                  confirm-button-text="确定"
-                  cancel-button-text="不了"
-                  style="margin-left: 10px"
-                  @confirm="delete_configmap(scoped.row)"
-                  @cancel="cancel_delete"
-                >
-                  <el-button
-                    slot="reference"
-                    type="danger"
-                    icon="el-icon-delete"
-                    size="small"
-                  ></el-button>
-                </el-popconfirm>
-                <el-tooltip
-                  class="item"
-                  effect="dark"
-                  content="更多"
-                  placement="top"
-                  style="margin-left: 10px"
-                >
-                  <el-dropdown
-                    trigger="click"
-                    @command="
-                      (command) => {
-                        configmap_command(command, scoped.row);
-                      }
-                    "
-                  >
-                    <el-button type="warning" icon="el-icon-menu" size="small">
-                    </el-button>
-                    <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item
-                        command="export"
-                        icon="el-icon-top"
-                        style="color: #409eff"
-                        >导出</el-dropdown-item
-                      >
-                      <el-dropdown-item
-                        command="export_yaml"
-                        icon="el-icon-document"
-                        style="color: #67c23a"
-                        >导出YAML</el-dropdown-item
-                      >
-                    </el-dropdown-menu>
-                  </el-dropdown>
-                </el-tooltip>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            :page-size="10"
-            :current-page.sync="currentPage"
-            :total="configmap_list.length"
-            layout="total, prev, pager, next"
-            style="text-align: left; margin-top: 20px"
-          >
-          </el-pagination>
-        </el-tab-pane>
-        <!-- -------------------------------------------------- -->
-        <el-tab-pane label="Secret" name="Secret">
-          <el-button
-            type="primary"
-            size="small"
-            icon="el-icon-plus"
-            @click="creaet_secret"
-            >新增</el-button
-          >
-          <el-table
-            :data="secret_list"
-            size="small"
-            empty-text="啥也没有"
-            border
-          >
-            <el-table-column type="selection" width="55"> </el-table-column>
-            <el-table-column
-              label="名称"
-              prop="metadata.name"
-            ></el-table-column>
-            <el-table-column
-              label="命名空间"
-              prop="metadata.namespace"
-            ></el-table-column>
-            <el-table-column label="类型" prop="type"></el-table-column>
-            <el-table-column label="创建时间">
-              <template slot-scope="scoped">
-                {{
-                  scoped.row.metadata.creationTimestamp.seconds
-                    | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-                }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180px;">
-              <template>
-                <el-button
-                  type="warning"
-                  icon="el-icon-edit"
-                  size="small"
-                ></el-button>
-                <el-tooltip
-                  class="item"
-                  effect="dark"
-                  content="导出"
-                  placement="top"
-                >
-                  <el-button
-                    type="primary"
+      <el-table
+        :data="page_configmap_list"
+        size="small"
+        empty-text="啥也没有"
+        border
+      >
+        <el-table-column type="selection" width="50"> </el-table-column>
+        <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column
+          label="命名空间"
+          prop="metadata.namespace"
+        ></el-table-column>
+        <el-table-column label="创建时间">
+          <template slot-scope="scoped">
+            {{
+              scoped.row.metadata.creationTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180px;">
+          <template slot-scope="scoped">
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="small"
+              @click="update_configmap(scoped.row)"
+            ></el-button>
+            <el-popconfirm
+              title="确定删除吗？"
+              confirm-button-text="确定"
+              cancel-button-text="不了"
+              style="margin-left: 10px"
+              @confirm="delete_configmap(scoped.row)"
+              @cancel="cancel_delete"
+            >
+              <el-button
+                slot="reference"
+                type="danger"
+                icon="el-icon-delete"
+                size="small"
+              ></el-button>
+            </el-popconfirm>
+            <el-tooltip
+              class="item"
+              effect="dark"
+              content="更多"
+              placement="top"
+              style="margin-left: 10px"
+            >
+              <el-dropdown
+                trigger="click"
+                @command="
+                  (command) => {
+                    configmap_command(command, scoped.row);
+                  }
+                "
+              >
+                <el-button type="warning" icon="el-icon-menu" size="small">
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item
+                    command="export"
                     icon="el-icon-top"
-                    size="small"
-                  ></el-button>
-                </el-tooltip>
-                <el-popconfirm
-                  title="确定删除吗？"
-                  confirm-button-text="确定"
-                  cancel-button-text="不了"
-                  style="margin-left: 10px"
-                  @confirm="delete_secret(scoped.row)"
-                  @cancel="cancel_delete"
-                >
-                  <el-button
-                    slot="reference"
-                    type="danger"
-                    icon="el-icon-delete"
-                    size="small"
-                  ></el-button>
-                </el-popconfirm>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+                    style="color: #409eff"
+                    >导出</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    command="export_yaml"
+                    icon="el-icon-document"
+                    style="color: #67c23a"
+                    >导出YAML</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </el-dropdown>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        background
+        :page-size="10"
+        :current-page.sync="currentPage"
+        :total="configmap_list.length"
+        layout="total, prev, pager, next"
+        style="text-align: left; margin-top: 20px"
+      >
+      </el-pagination>
       <!-- -------------------------------------------------- -->
       <el-dialog
         :title="textMap[dialogStatus]"

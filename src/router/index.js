@@ -1,7 +1,7 @@
 import Vue from "vue";
 import Router from "vue-router";
 import Layout from "@/layout";
-import k8sRoute from "./k8s";
+
 Vue.use(Router);
 
 export const constantRoutes = [
@@ -24,10 +24,10 @@ export const constantRoutes = [
   },
 
   {
-    path: "/k8s",
+    path: "/openx",
     name: "OpenX",
     component: Layout,
-    redirect: "/k8s/openx",
+    redirect: "/openx/openx",
     meta: {
       title: "OpenX",
       icon: "x",

@@ -72,7 +72,10 @@
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="Namespace" prop="metadata.namespace">
-                    <el-input v-model="alb_obj.metadata.namespace"></el-input>
+                    <el-input
+                      v-model="alb_obj.metadata.namespace"
+                      disabled
+                    ></el-input>
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -85,10 +88,12 @@
                       @click="add_annotations"
                     ></el-button>
                     <el-tag
-                      v-for="tag in alb_obj.metadata.annotations"
+                      v-for="tag in initAnnotations(
+                        alb_obj.metadata.annotations
+                      )"
                       :key="tag.label"
                       closable
-                      @close="close_annotation(tag)"
+                      @close="close_annotation(tag.label)"
                       >{{ tag.label }}:{{ tag.value }}</el-tag
                     >
                   </el-form-item>
@@ -101,9 +106,9 @@
                       @click="add_labels"
                     ></el-button>
                     <el-tag
-                      v-for="tag in alb_obj.metadata.labels"
+                      v-for="tag in initAnnotations(alb_obj.metadata.labels)"
                       :key="tag.label"
-                      @close="close_label(tag)"
+                      @close="close_label(tag.label)"
                       closable
                       >{{ tag.label }}:{{ tag.value }}</el-tag
                     >
@@ -123,8 +128,8 @@
                 <el-col :span="12">
                   <el-form-item label="覆盖监听" prop="spec.overrideListeners">
                     <el-select v-model="alb_obj.spec.overrideListeners.value">
-                      <el-option label="true" :value="true"></el-option>
-                      <el-option label="false" :value="false"></el-option>
+                      <el-option label="true" value="true"></el-option>
+                      <el-option label="false" value="false"></el-option>
                     </el-select>
                   </el-form-item>
                 </el-col>
@@ -213,15 +218,27 @@ export default {
     MetaDataTpl,
   },
   computed: {
-    ...mapGetters(["message", "namespace"]),
+    ...mapGetters(["message", "namespace", "isConnected"]),
   },
   watch: {
     message: function () {
       this.socket_onmessage(this.message);
     },
+    // 切换 namspace
     namespace: function () {
       this.get_alb_list(this.namespace);
     },
+    isConnected: function () {
+      if (this.isConnected) {
+        console.log("......isConnected......");
+        const ns = localStorage.getItem("k8s_namespace");
+        this.get_alb_list(ns);
+      }
+    },
+  },
+  created() {
+    const ns = localStorage.getItem("k8s_namespace");
+    this.get_alb_list(ns);
   },
   data() {
     return {
@@ -273,7 +290,6 @@ export default {
       this.alb_dialog = true;
       this.dialogStatus = "create_alb";
       this.alb_obj = Object.assign({}, row);
-      // console.log(this.alb_obj.metadata, "====");
     },
     delete_alb(row) {
       this.alb_obj = Object.assign({}, row);
@@ -291,28 +307,32 @@ export default {
         params
       );
       sendSocketMessage(createdata, store);
-      this.get_alb_list(ns);
+      
     },
     submit_alb() {
       if (this.dialogStatus === "create_alb") {
         const ns = localStorage.getItem("k8s_namespace");
-
-        console.log(this.alb_obj, "====");
-
-        // const message = protoOpenx["v1"]["AliyunLoadBalancer"].create(
-        //   this.alb_obj
-        // );
-        // const params = protoOpenx["v1"]["AliyunLoadBalancer"]
-        //   .encode(message)
-        //   .finish();
-        // const createdata = initSocketData(
-        //   ns,
-        //   "openx.neverdown.org-v1-AliyunLoadBalancer",
-        //   "create",
-        //   params
-        // );
-        // sendSocketMessage(createdata, store);
+        // console.log(this.alb_obj, "====");
+        const message = protoOpenx["v1"]["AliyunLoadBalancer"].create(
+          this.alb_obj
+        );
+        const params = protoOpenx["v1"]["AliyunLoadBalancer"]
+          .encode(message)
+          .finish();
+        const createdata = initSocketData(
+          ns,
+          "openx.neverdown.org-v1-AliyunLoadBalancer",
+          "create",
+          params
+        );
+        sendSocketMessage(createdata, store);
         this.alb_dialog = false;
+        const senddata = initSocketData(
+          ns,
+          "openx.neverdown.org-v1-AliyunLoadBalancer",
+          "list"
+        );
+        sendSocketMessage(senddata, store);
       } else if (this.dialogStatus === "update_alb") {
         //
       }
@@ -356,37 +376,54 @@ export default {
         }
       }
     },
+    initAnnotations(ans) {
+      let tags = [];
+      for (let key in ans) {
+        tags.push({
+          label: key,
+          value: ans[key],
+        });
+      }
+      return tags;
+    },
     add_annotations() {
       this.kv_dialog = true;
       this.kv_dialog_status = "create_annotation";
+      this.kv_tag = Object.assign({}, "");
     },
     close_annotation(tag) {
-      this.alb_obj.metadata.annotations =
-        this.alb_obj.metadata.annotations.filter((item) => item !== tag);
+      const annotations = Object.assign({}, this.alb_obj.metadata.annotations);
+      delete annotations[tag];
+      this.alb_obj.metadata.annotations = annotations;
     },
     add_labels() {
       this.kv_dialog = true;
       this.kv_dialog_status = "create_label";
+      this.kv_tag = Object.assign({}, "");
     },
     close_label(tag) {
-      this.alb_obj.metadata.labels = this.alb_obj.metadata.labels.filter(
-        (item) => item !== tag
-      );
+      const labels = Object.assign({}, this.alb_obj.metadata.labels);
+      delete labels[tag];
+      this.alb_obj.metadata.labels = labels;
     },
     submit_kv() {
       if (this.kv_dialog_status === "create_annotation") {
-        this.alb_obj.metadata.annotations = Object.assign([]);
-        this.alb_obj.metadata.annotations.push({
-          label: this.kv_tag.label,
-          value: this.kv_tag.value,
-        });
+        const addKey = this.kv_tag.label;
+        const addValue = this.kv_tag.value;
+        if (addKey === "" || addValue === "") {
+          return;
+        } else {
+          this.alb_obj.metadata.annotations[addKey] = addValue;
+        }
         this.kv_dialog = false;
       } else if (this.kv_dialog_status === "create_label") {
-        this.alb_obj.metadata.labels = Object.assign([]);
-        this.alb_obj.metadata.labels.push({
-          label: this.kv_tag.label,
-          value: this.kv_tag.value,
-        });
+        const addKey = this.kv_tag.label;
+        const addValue = this.kv_tag.value;
+        if (addKey === "" || addValue === "") {
+          return;
+        } else {
+          this.alb_obj.metadata.labels[addKey] = addValue;
+        }
         this.kv_dialog = false;
       }
     },

@@ -8,6 +8,7 @@ const getters = {
   permission_routes: (state) => state.permission.routes,
   socket: (state) => state.k8s.socket,
   message: (state) => state.k8s.socket.message,
+  isConnected: (state) => state.k8s.socket.isConnected,
   namespace: (state) => state.k8s.socket.namespace,
 };
 export default getters;

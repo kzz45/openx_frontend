@@ -23,6 +23,20 @@
         </div>
       </el-header>
       <el-main>
+        <el-row>
+          <el-col :span="24">
+            <div
+              style="
+                height: 30px;
+                padding: 40px;
+                font-size: 1.4rem;
+                font-weight: bold;
+              "
+            >
+              请选择命名空间
+            </div>
+          </el-col>
+        </el-row>
         <el-row class="panel-group">
           <el-col
             v-for="ns in namespace_list"

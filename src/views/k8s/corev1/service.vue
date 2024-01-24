@@ -1,16 +1,14 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-tabs v-model="active_tab" @tab-click="tab_click">
-        <el-tab-pane label="Service" name="Service">
-          <el-button
-            type="primary"
-            size="small"
-            icon="el-icon-plus"
-            @click="create_service"
-            >新增</el-button
-          >
-          <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
+      <el-button
+        type="primary"
+        size="small"
+        icon="el-icon-plus"
+        @click="create_service"
+        >新增</el-button
+      >
+      <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
             >导入</el-button
           >
           <el-button type="primary" size="small" icon="el-icon-bottom"
@@ -25,92 +23,86 @@
           <el-button type="danger" size="small" icon="el-icon-delete"
             >删除</el-button
           > -->
-          <el-table
-            :data="page_service_list"
-            size="small"
-            empty-text="啥也没有"
-            border
-          >
-            <el-table-column type="selection" width="55"> </el-table-column>
-            <el-table-column
-              label="名称"
-              prop="metadata.name"
-            ></el-table-column>
-            <el-table-column label="类型" prop="spec.type"></el-table-column>
-            <el-table-column
-              label="ClusterIP"
-              prop="spec.clusterIP"
-            ></el-table-column>
-            <el-table-column label="端口">
-              <template slot-scope="scoped">
-                <el-tag
-                  v-for="(item, index) in scoped.row.spec.ports"
-                  :key="index"
-                  style="margin-left: 3px"
-                  >{{ item.port }}-->{{ item.targetPort.intVal }}/{{
-                    item.protocol
-                  }}</el-tag
-                >
-              </template>
-            </el-table-column>
-            <el-table-column label="创建时间">
-              <template slot-scope="scoped">
-                {{
-                  scoped.row.metadata.creationTimestamp.seconds
-                    | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-                }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180px;">
-              <template slot-scope="scoped">
-                <el-button
-                  type="warning"
-                  icon="el-icon-edit"
-                  size="small"
-                  @click="update_service(scoped.row)"
-                ></el-button>
-                <el-tooltip
-                  class="item"
-                  effect="dark"
-                  content="导出"
-                  placement="top"
-                >
-                  <el-button
-                    type="primary"
-                    icon="el-icon-top"
-                    size="small"
-                  ></el-button>
-                </el-tooltip>
-                <el-popconfirm
-                  title="确定删除吗？"
-                  confirm-button-text="确定"
-                  cancel-button-text="不了"
-                  style="margin-left: 10px"
-                  @confirm="delete_service(scoped.row)"
-                  @cancel="cancel_delete"
-                >
-                  <el-button
-                    slot="reference"
-                    type="danger"
-                    icon="el-icon-delete"
-                    size="small"
-                  ></el-button>
-                </el-popconfirm>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            background
-            :page-size="10"
-            :current-page.sync="currentPage"
-            :total="service_list.length"
-            layout="total, prev, pager, next"
-            style="text-align: left; margin-top: 20px"
-          >
-          </el-pagination>
-        </el-tab-pane>
-        <el-tab-pane label="Ingress" name="Ingress"></el-tab-pane>
-      </el-tabs>
+      <el-table
+        :data="page_service_list"
+        size="small"
+        empty-text="啥也没有"
+        border
+      >
+        <el-table-column type="selection" width="55"> </el-table-column>
+        <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column label="类型" prop="spec.type"></el-table-column>
+        <el-table-column
+          label="ClusterIP"
+          prop="spec.clusterIP"
+        ></el-table-column>
+        <el-table-column label="端口">
+          <template slot-scope="scoped">
+            <el-tag
+              v-for="(item, index) in scoped.row.spec.ports"
+              :key="index"
+              style="margin-left: 3px"
+              >{{ item.port }}-->{{ item.targetPort.intVal }}/{{
+                item.protocol
+              }}</el-tag
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间">
+          <template slot-scope="scoped">
+            {{
+              scoped.row.metadata.creationTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180px;">
+          <template slot-scope="scoped">
+            <el-button
+              type="warning"
+              icon="el-icon-edit"
+              size="small"
+              @click="update_service(scoped.row)"
+            ></el-button>
+            <el-tooltip
+              class="item"
+              effect="dark"
+              content="导出"
+              placement="top"
+            >
+              <el-button
+                type="primary"
+                icon="el-icon-top"
+                size="small"
+              ></el-button>
+            </el-tooltip>
+            <el-popconfirm
+              title="确定删除吗？"
+              confirm-button-text="确定"
+              cancel-button-text="不了"
+              style="margin-left: 10px"
+              @confirm="delete_service(scoped.row)"
+              @cancel="cancel_delete"
+            >
+              <el-button
+                slot="reference"
+                type="danger"
+                icon="el-icon-delete"
+                size="small"
+              ></el-button>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        background
+        :page-size="10"
+        :current-page.sync="currentPage"
+        :total="service_list.length"
+        layout="total, prev, pager, next"
+        style="text-align: left; margin-top: 20px"
+      >
+      </el-pagination>
 
       <el-dialog
         title="服务"

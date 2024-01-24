@@ -1,12 +1,10 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-tabs v-model="active_tab" @tab-click="tab_click">
-        <el-tab-pane label="Openx" name="Openx">
-          <el-button type="primary" size="small" icon="el-icon-plus"
-            >新增</el-button
-          >
-          <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
+      <el-button type="primary" size="small" icon="el-icon-plus"
+        >新增</el-button
+      >
+      <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
             >导入</el-button
           >
           <el-button type="primary" size="small" icon="el-icon-bottom"
@@ -21,41 +19,17 @@
           <el-button type="danger" size="small" icon="el-icon-delete"
             >删除</el-button
           > -->
-          <el-table
-            :data="openx_list"
-            size="small"
-            empty-text="啥也没有"
-            border
-          >
-            <el-table-column type="selection" width="55"> </el-table-column>
-            <el-table-column label="名称"></el-table-column>
-            <el-table-column label="更新时间"></el-table-column>
-            <el-table-column label="操作"></el-table-column>
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="亲和" name="Affinity">
-          <AffinityTmplate ref="affinity"></AffinityTmplate>
-        </el-tab-pane>
-        <el-tab-pane label="容忍" name="Toleration">
-          <TolerationTemplte ref="toleration"></TolerationTemplte>
-        </el-tab-pane>
-        <el-tab-pane label="ALB" name="ALB">
-          <CloudLoadBalancer ref="alb"></CloudLoadBalancer>
-        </el-tab-pane>
-        <el-tab-pane label="ACL" name="ACL">
-          <CloudAccessControl ref="acl"></CloudAccessControl>
-        </el-tab-pane>
-      </el-tabs>
+      <el-table :data="openx_list" size="small" empty-text="啥也没有" border>
+        <el-table-column type="selection" width="55"> </el-table-column>
+        <el-table-column label="名称"></el-table-column>
+        <el-table-column label="更新时间"></el-table-column>
+        <el-table-column label="操作"></el-table-column>
+      </el-table>
     </el-card>
   </div>
 </template>
 
 <script>
-import AffinityTmplate from "./affinity.vue";
-import TolerationTemplte from "./toleration.vue";
-import CloudLoadBalancer from "./cloudLoadBalancer.vue";
-import CloudAccessControl from "./cloudAccessControl.vue";
-
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
@@ -68,12 +42,7 @@ const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 
 export default {
   name: "OpenxApp",
-  components: {
-    AffinityTmplate,
-    TolerationTemplte,
-    CloudLoadBalancer,
-    CloudAccessControl,
-  },
+
   computed: {
     ...mapGetters(["message", "namespace"]),
   },
@@ -96,22 +65,6 @@ export default {
     };
   },
   methods: {
-    tab_click(tab) {
-      if (tab.name === "Openx") {
-        //
-      } else if (tab.name === "Affinity") {
-        //
-      } else if (tab.name === "Toleration") {
-        //
-      } else if (tab.name === "ALB") {
-        const ns = localStorage.getItem("k8s_namespace");
-        this.$refs.alb.get_alb_list(ns);
-      } else if (tab.name === "ACL") {
-        //
-        const ns = localStorage.getItem("k8s_namespace");
-        this.$refs.acl.get_acl_list(ns);
-      }
-    },
     get_openx_list(ns) {
       const senddata = initSocketData(
         ns,

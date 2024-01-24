@@ -60,17 +60,73 @@
           ref="acl_obj_refs"
           :model="acl_obj"
           size="small"
-          label-width="80px"
+          label-width="100px"
         >
-          <el-form-item label="instance" prop="instance">
-            <el-input v-model="acl_obj.spec.instance.value"></el-input>
-          </el-form-item>
-          <el-form-item label="overrideListeners" prop="overrideListeners">
-            <el-select v-model="acl_obj.spec.overrideListeners.value">
-              <el-option label="true" :value="true"></el-option>
-              <el-option label="false" :value="false"></el-option>
-            </el-select>
-          </el-form-item>
+          <el-tabs v-model="dialog_tabs">
+            <el-tab-pane label="Metadata" name="metadata">
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="Name" prop="metadata.name">
+                    <el-input v-model="acl_obj.metadata.name"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="Namespace" prop="metadata.namespace">
+                    <el-input
+                      v-model="acl_obj.metadata.namespace"
+                      disabled
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="注解" prop="metadata.annotations">
+                    <el-button size="small" icon="el-icon-plus"></el-button>
+                    <el-tag
+                      v-for="tag in acl_obj.metadata.annotations"
+                      :key="tag.label"
+                      closable
+                      >{{ tag.label }}:{{ tag.value }}</el-tag
+                    >
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item label="标签" prop="metadata.labels">
+                    <el-button size="small" icon="el-icon-plus"></el-button>
+                    <el-tag
+                      v-for="tag in acl_obj.metadata.labels"
+                      :key="tag.label"
+                      closable
+                      >{{ tag.label }}:{{ tag.value }}</el-tag
+                    >
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
+            <el-tab-pane label="Spec" name="spec">
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="instance" prop="instance">
+                    <el-input
+                      v-model="acl_obj.spec.instance.value"
+                    ></el-input> </el-form-item
+                ></el-col>
+                <el-col :span="12">
+                  <el-form-item label="status" prop="status">
+                    <el-input v-model="acl_obj.spec.status.value"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="12">
+                  <el-form-item label="type" prop="type">
+                    <el-input v-model="acl_obj.spec.type.value"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
+          </el-tabs>
         </el-form>
         <span slot="footer" class="dialog-footer">
           <el-button size="small" @click="acl_dialog = false">取 消</el-button>
@@ -99,16 +155,17 @@ const AclObj = {
     namespace: localStorage.getItem("k8s_namespace"),
     annotations: {},
     labels: {},
-    creationTimestamp: {
-      seconds: 0,
-    },
   },
   spec: {
     instance: {
       key: "",
       value: "",
     },
-    overrideListeners: {
+    status: {
+      key: "",
+      value: "",
+    },
+    type: {
       key: "",
       value: "",
     },
@@ -147,21 +204,23 @@ export default {
           namespace: "",
           annotations: {},
           labels: {},
-          creationTimestamp: {
-            seconds: 0,
-          },
         },
         spec: {
           instance: {
             key: "",
             value: "",
           },
-          overrideListeners: {
+          status: {
+            key: "",
+            value: "",
+          },
+          type: {
             key: "",
             value: "",
           },
         },
       },
+      dialog_tabs: "metadata",
     };
   },
   methods: {
