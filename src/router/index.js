@@ -169,31 +169,32 @@ export const constantRoutes = [
       },
     ],
   },
-  {
-    path: "/appsv1",
-    component: Layout,
-    meta: { title: "原生应用", icon: "kubernetes" },
-    children: [
-      {
-        path: "deploy",
-        name: "Deploy",
-        component: () => import("@/views/k8s/appsv1/deployment"),
-        meta: {
-          title: "Deployment",
-          icon: "deploy",
-        },
-      },
-      {
-        path: "statefulset",
-        name: "StatefulSet",
-        component: () => import("@/views/k8s/appsv1/statefulset"),
-        meta: {
-          title: "StatefulSet",
-          icon: "sts",
-        },
-      },
-    ],
-  },
+  // 这里就不需要了
+  // {
+  //   path: "/appsv1",
+  //   component: Layout,
+  //   meta: { title: "原生应用", icon: "kubernetes" },
+  //   children: [
+  //     {
+  //       path: "deploy",
+  //       name: "Deploy",
+  //       component: () => import("@/views/k8s/appsv1/deployment"),
+  //       meta: {
+  //         title: "Deployment",
+  //         icon: "deploy",
+  //       },
+  //     },
+  //     {
+  //       path: "statefulset",
+  //       name: "StatefulSet",
+  //       component: () => import("@/views/k8s/appsv1/statefulset"),
+  //       meta: {
+  //         title: "StatefulSet",
+  //         icon: "sts",
+  //       },
+  //     },
+  //   ],
+  // },
 
   {
     path: "/rbacv1",

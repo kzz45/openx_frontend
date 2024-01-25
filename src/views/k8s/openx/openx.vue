@@ -25,8 +25,19 @@
       > -->
       <el-table :data="openx_list" size="small" empty-text="啥也没有" border>
         <el-table-column type="selection" width="55"> </el-table-column>
-        <el-table-column label="名称"></el-table-column>
-        <el-table-column label="更新时间"></el-table-column>
+        <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column
+          label="命名空间"
+          prop="metadata.namespace"
+        ></el-table-column>
+        <el-table-column label="创建时间">
+          <template slot-scope="scoped">
+            {{
+              scoped.row.metadata.creationTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作"></el-table-column>
       </el-table>
 
@@ -43,10 +54,10 @@
           label-width="100px"
         >
           <el-tabs v-model="dialog_tabs">
-            <el-tab-pane label="Metadata" name="metadata">
+            <el-tab-pane label="元数据" name="metadata">
               <MetadataTpl ref="metadatatpl"></MetadataTpl>
             </el-tab-pane>
-            <el-tab-pane label="App" name="app">
+            <el-tab-pane label="应用" name="app">
               <el-tag
                 v-for="(app_form, index) in openx_obj.spec.applications"
                 :key="index"
@@ -54,6 +65,8 @@
                 :disable-transitions="false"
                 type="primary"
                 effect="dark"
+                @close="close_app_tag(app_form)"
+                @click="app_tag_click(app_form, index)"
                 style="margin-right: 10px"
               >
                 {{ app_form.appName }}
@@ -74,7 +87,7 @@
                 class="button-new-tag"
                 size="small"
                 @click="app_name_input"
-                >+ New App</el-button
+                >+ 添加</el-button
               >
               <el-divider content-position="right">Container</el-divider>
               <OpenxAppTpl
@@ -102,37 +115,15 @@ const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 import MetadataTpl from "@/components/k8s/metadata";
 import OpenxAppTpl from "@/components/k8s/openxapp";
 
-const OpenxObj = {
-  metadata: {
-    name: "nginx",
-    namespace: localStorage.getItem("k8s_namespace"),
-    annotations: {},
-    labels: {},
-  },
-  spec: {
-    applications: [
-      {
-        appName: "nginx",
-        replicas: 1,
-        watchPolicy: "in-place-upgrade",
-        pod: {
-          metadata: {},
-          spec: {
-            containers: [
-              {
-                name: "nginx",
-                image: "nginx:latest",
-              },
-            ],
-          },
-        },
-      },
-    ],
-  },
-};
+const Openxgvk = "openx.neverdown.org-v1-Openx";
 
 export default {
   name: "OpenX",
+  filters: {
+    parseTime(time, cFormat) {
+      return parseTime(time, cFormat);
+    },
+  },
   components: {
     MetadataTpl,
     OpenxAppTpl,
@@ -209,19 +200,25 @@ export default {
         this.$refs.appTagInput.$refs.input.focus();
       });
     },
+    close_app_tag(tag) {
+      this.openx_obj.spec.applications.splice(
+        this.openx_obj.spec.applications.indexOf(tag),
+        1
+      );
+    },
+    app_tag_click(tag, index) {
+      this.app_index = index;
+    },
     create_openx() {
       this.openx_dialog = true;
       this.dialogStatus = "create_openx";
+      this.openx_obj.spec.applications = [];
     },
-    update_openx() {},
-    delete_openx() {},
+    update_openx(row) {},
+    delete_openx(row) {},
     submit_openx() {},
     get_openx_list(ns) {
-      const senddata = initSocketData(
-        ns,
-        "openx.neverdown.org-v1-Openx",
-        "list"
-      );
+      const senddata = initSocketData(ns, Openxgvk, "list");
       sendSocketMessage(senddata, store);
     },
     socket_onmessage(msg) {
@@ -243,15 +240,17 @@ export default {
         const openx_list = protoOpenx["v1"][
           `${result.groupVersionKind.kind}List`
         ].decode(result.raw).items;
-        console.log(openx_list, "==============");
+        // console.log(openx_list, "==============");
         openx_list.sort((itemA, itemB) => {
           return (
             itemB.metadata.creationTimestamp.seconds -
             itemA.metadata.creationTimestamp.seconds
           );
         });
+        this.openx_list = [];
         for (const item of openx_list) {
-          console.log(item.spec, "======");
+          // console.log(item.spec, "======");
+          this.openx_list.push(item);
         }
       }
     },

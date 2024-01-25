@@ -11,13 +11,13 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="appName" prop="appName">
-                <el-input v-model="app_form.spec.appName"></el-input>
+                <el-input v-model="app_form.appName"></el-input>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="replicas" prop="replicas">
                 <el-input-number
-                  v-model="app_form.spec.replicas"
+                  v-model="app_form.replicas"
                   :min="0"
                   :max="10"
                   style="width: 200px"
@@ -28,7 +28,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="更新策略" prop="watchPolicy">
-                <el-select v-model="app_form.spec.watchPolicy">
+                <el-select v-model="app_form.watchPolicy">
                   <el-option label="手动更新" value="manual"></el-option>
                   <el-option
                     label="滚动更新"
@@ -61,7 +61,7 @@ export default {
   watch: {
     app_form: {
       handler(newVal) {
-        console.log(newVal, "============");
+        // console.log(newVal, "============");
       },
       deep: true,
       immediate: true,
