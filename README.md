@@ -1,20 +1,24 @@
 # K8S管理平台
 
+## 本地运行
+
 ```sh
-./node_modules/protobufjs-cli/bin/pbjs -t static-module --es6 -w es6 -o src/proto/proto.js src/proto/protos/*.proto
-./node_modules/protobufjs-cli/bin/pbjs -t json-module  -w commonjs -o src/proto/proto.js src/proto/protos/*.proto
+npm cache clean --force
+npm install -D
+npm run dev
 ```
 
-批量删除
+## 功能
 
-批量编辑，修改镜像，修改环境变量
+一些常见的动作比如在阿里云或者腾讯云上的创建删除更新等等原生的动作都有
 
-批量复制
+以下是一些私有的功能
 
-批量导出YAML
-
-排序过滤
-
-事件关联
-
-多个对比
+1. 批量复制应用
+2. 批量删除应用
+3. 批量修改应用配置如：镜像版本、环境变量、挂载卷等等
+4. 将应用复制到其他命名空间
+5. 应用可以配置自动更新
+6. 指定阿里云或者腾讯云的负责均衡，来自动创建 loadbalance service
+7. 指定应用的亲和性和容忍性配置
+8. 可部署 MySQL Redis 等数据库服务
