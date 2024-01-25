@@ -51,18 +51,23 @@ const AffinityObj = {
     namespace: localStorage.getItem("k8s_namespace"),
     annotations: {},
     labels: {},
-    creationTimestamp: {
-      seconds: 0,
-    },
   },
   spec: {
-    instance: {
-      key: "",
-      value: "",
-    },
-    overrideListeners: {
-      key: "",
-      value: "",
+    affinity: {
+      nodeAffinity: {
+        preferredDuringSchedulingIgnoredDuringExecution: [],
+        requiredDuringSchedulingIgnoredDuringExecution: {
+          nodeSelectorTerms: [],
+        },
+      },
+      podAffinity: {
+        preferredDuringSchedulingIgnoredDuringExecution: [],
+        requiredDuringSchedulingIgnoredDuringExecution: [],
+      },
+      podAntiAffinity: {
+        preferredDuringSchedulingIgnoredDuringExecution: [],
+        requiredDuringSchedulingIgnoredDuringExecution: [],
+      },
     },
   },
 };
@@ -89,8 +94,11 @@ export default {
     update_affinity(row) {
       this.affinity_dialog = true;
       this.dialogStatus = "create_affinity";
+      this.affinity_obj = Object.assign({}, row);
     },
-    delete_affinity(row) {},
+    delete_affinity(row) {
+      this.affinity_obj = Object.assign({}, row);
+    },
     submit_affinity() {
       if (this.dialogStatus === "create_affinity") {
         //

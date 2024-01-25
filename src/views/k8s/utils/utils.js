@@ -6,6 +6,9 @@ const protoApi = protoRoot.k8s.io.api;
 const protoRbac = protoRoot.k8s.io.api.rbac;
 const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
+const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
+const protoJingx = protoRoot.github.com.kzz45.discovery.pkg.apis.jingx;
+const protoMetrics = protoRoot.k8s.io.metrics.pkg.apis.metrics;
 
 export const binaryToStr = (fileData) => {
   let dataString = "";
@@ -65,11 +68,11 @@ export function returnResourceList(msg, nameSpace, gvk) {
   let resultGvk = result.groupVersionKind;
   let protoFetch = {};
   if (gvk.group.startsWith("openx")) {
-    protoFetch = protoSargeras[gvk.version];
+    protoFetch = protoOpenx[gvk.version];
   } else if (gvk.group.startsWith("rbac")) {
     protoFetch = protoRbac[gvk.version];
   } else if (gvk.group === "jingx") {
-    protoFetch = protoGuldan[gvk.version];
+    protoFetch = protoJingx[gvk.version];
   } else if (gvk.group.startsWith("metrics")) {
     protoFetch = protoMetrics[gvk.version];
   } else {
@@ -104,11 +107,11 @@ export function returnResource(
   let resultGvk = result.groupVersionKind;
   let protoFetch = {};
   if (gvk.group.startsWith("openx")) {
-    protoFetch = protoSargeras[gvk.version];
+    protoFetch = protoOpenx[gvk.version];
   } else if (gvk.group.startsWith("rbac")) {
     protoFetch = protoRbac[gvk.version];
   } else if (gvk.group === "jingx") {
-    protoFetch = protoGuldan[gvk.version];
+    protoFetch = protoJingx[gvk.version];
   } else if (gvk.group.startsWith("metrics")) {
     protoFetch = protoMetrics[gvk.version];
   } else {
@@ -210,11 +213,11 @@ export function returnResource(
 export function deleteSocketData(gvk, item) {
   let protoFetch = {};
   if (gvk.group.startsWith("openx")) {
-    protoFetch = protoSargeras[gvk.version];
+    protoFetch = protoOpenx[gvk.version];
   } else if (gvk.group.startsWith("rbac")) {
     protoFetch = protoRbac[gvk.version];
   } else if (gvk.group === "jingx") {
-    protoFetch = protoGuldan[gvk.version];
+    protoFetch = protoJingx[gvk.version];
   } else {
     protoFetch = protoApi[gvk.group][gvk.version];
   }
@@ -229,11 +232,11 @@ export function deleteSocketData(gvk, item) {
 export function updateSocketData(gvk, item) {
   let protoFetch = {};
   if (gvk.group.startsWith("openx")) {
-    protoFetch = protoSargeras[gvk.version];
+    protoFetch = protoOpenx[gvk.version];
   } else if (gvk.group.startsWith("rbac")) {
     protoFetch = protoRbac[gvk.version];
   } else if (gvk.group === "jingx") {
-    protoFetch = protoGuldan[gvk.version];
+    protoFetch = protoJingx[gvk.version];
   } else {
     protoFetch = protoApi[gvk.group][gvk.version];
   }

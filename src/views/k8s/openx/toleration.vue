@@ -12,6 +12,23 @@
 </template>
 
 <script>
+const TolerationObj = {
+  metadata: {
+    name: "",
+    namespace: localStorage.getItem("k8s_namespace"),
+    annotations: {},
+    labels: {},
+  },
+  spec: {
+    toleration: {
+      effect: "",
+      key: "",
+      operator: "",
+      value: "",
+    },
+  },
+};
+
 export default {
   data() {
     return {

@@ -1,11 +1,11 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-button type="warning" size="small" icon="el-icon-edit"
+      <!-- <el-button type="warning" size="small" icon="el-icon-edit"
         >编辑</el-button
-      >
+      > -->
       <el-button type="danger" size="small" icon="el-icon-delete"
-        >删除</el-button
+        >批量删除</el-button
       >
       <el-table
         :data="page_pod_list"
@@ -50,6 +50,7 @@
                   <el-table-column
                     property="name"
                     label="Container"
+                    width="200"
                   ></el-table-column>
                   <el-table-column label="操作">
                     <template>
@@ -86,6 +87,7 @@
                   <el-table-column
                     property="name"
                     label="Container"
+                    width="200"
                   ></el-table-column>
                   <el-table-column label="操作">
                     <template>
@@ -214,8 +216,9 @@ export default {
           );
         });
         this.pod_list = [];
-        for (let svc of pod_list) {
-          this.pod_list.push(svc);
+        for (let item of pod_list) {
+          // console.log(item, "=========================");
+          this.pod_list.push(item);
         }
       }
     },

@@ -8,7 +8,7 @@
         @click="create_acl"
         >新增</el-button
       >
-      <el-table :data="alb_list" size="small" empty-text="啥也没有" border>
+      <el-table :data="acl_list" size="small" empty-text="啥也没有" border>
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
         <el-table-column
@@ -64,7 +64,8 @@
         >
           <el-tabs v-model="dialog_tabs">
             <el-tab-pane label="Metadata" name="metadata">
-              <el-row>
+              <MetadataTpl ref="metadatatpl"></MetadataTpl>
+              <!-- <el-row>
                 <el-col :span="12">
                   <el-form-item label="Name" prop="metadata.name">
                     <el-input v-model="acl_obj.metadata.name"></el-input>
@@ -102,7 +103,7 @@
                     >
                   </el-form-item>
                 </el-col>
-              </el-row>
+              </el-row> -->
             </el-tab-pane>
             <el-tab-pane label="Spec" name="spec">
               <el-row>
@@ -143,11 +144,15 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
+import { Notification } from "element-ui";
 import protoRoot from "@/proto/proto";
 const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 import { initSocketData, updateSocketData, sendSocketMessage } from "@/api/k8s";
+import { binaryToStr } from "@/views/k8s/utils/utils";
+
+import MetadataTpl from "@/components/k8s/metadata";
 
 const AclObj = {
   metadata: {
@@ -158,21 +163,24 @@ const AclObj = {
   },
   spec: {
     instance: {
-      key: "",
+      key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-acl-id",
       value: "",
     },
     status: {
-      key: "",
+      key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-acl-status",
       value: "",
     },
     type: {
-      key: "",
+      key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-acl-type",
       value: "",
     },
   },
 };
 
 export default {
+  components: {
+    MetadataTpl,
+  },
   filters: {
     parseTime(time, cFormat) {
       return parseTime(time, cFormat);
@@ -186,8 +194,12 @@ export default {
       this.socket_onmessage(this.message);
     },
     namespace: function () {
-      this.get_alb_list(this.namespace);
+      this.get_acl_list(this.namespace);
     },
+  },
+  created() {
+    const ns = localStorage.getItem("k8s_namespace");
+    this.get_acl_list(ns);
   },
   data() {
     return {
@@ -197,7 +209,7 @@ export default {
       },
       dialogStatus: "",
       acl_dialog: false,
-      alb_list: [],
+      acl_list: [],
       acl_obj: {
         metadata: {
           name: "",
@@ -207,15 +219,15 @@ export default {
         },
         spec: {
           instance: {
-            key: "",
+            key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-acl-id",
             value: "",
           },
           status: {
-            key: "",
+            key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-acl-status",
             value: "",
           },
           type: {
-            key: "",
+            key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-acl-type",
             value: "",
           },
         },
@@ -232,41 +244,44 @@ export default {
     update_acl(row) {
       this.acl_dialog = true;
       this.dialogStatus = "create_acl";
+      this.acl_obj = Object.assign({}, row);
     },
-    delete_acl(row) {},
+    delete_acl(row) {
+      this.acl_obj = Object.assign({}, row);
+      // console.log(this.acl_obj, "=====");
+      const ns = localStorage.getItem("k8s_namespace");
+      const message = protoOpenx["v1"]["AliyunAccessControl"].create(
+        this.acl_obj
+      );
+      const params = protoOpenx["v1"]["AliyunAccessControl"]
+        .encode(message)
+        .finish();
+      const delete_data = initSocketData(
+        ns,
+        "openx.neverdown.org-v1-AliyunAccessControl",
+        "delete",
+        params
+      );
+      sendSocketMessage(delete_data, store);
+    },
     submit_acl() {
       if (this.dialogStatus === "create_acl") {
         const ns = localStorage.getItem("k8s_namespace");
-        const creata_acl_obj = {
-          metadata: {
-            name: "demo",
-            namespace: ns,
-          },
-          spec: {
-            instance: {
-              key: "service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id",
-              value: "lb-2ze6mc3pyhuvjs0sxt59k",
-            },
-            overrideListeners: {
-              key: "service.beta.kubernetes.io/alicloud-loadbalancer-force-override-listeners",
-              value: "true",
-            },
-          },
-        };
-        const message =
-          protoOpenx["v1"]["AliyunAccessControl"].create(creata_acl_obj);
+        this.acl_obj.metadata = this.$refs.metadatatpl.metadata;
+        const message = protoOpenx["v1"]["AliyunAccessControl"].create(
+          this.acl_obj
+        );
         const params = protoOpenx["v1"]["AliyunAccessControl"]
           .encode(message)
           .finish();
-        // console.log(creata_acl_obj, "=====================");
         const createdata = initSocketData(
           ns,
           "openx.neverdown.org-v1-AliyunAccessControl",
           "create",
           params
         );
-        // console.log(createdata, "=====================");
         sendSocketMessage(createdata, store);
+        this.acl_dialog = false;
       } else if (this.dialogStatus === "update_acl") {
         //
       }
@@ -283,31 +298,95 @@ export default {
       let ns = localStorage.getItem("k8s_namespace");
       const result = protoRequest.Response.decode(msg);
       if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
+        Notification({
+          message: binaryToStr(result.raw),
           type: "error",
-          message: err_msg,
+          duration: 3000,
         });
       }
-      if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "AliyunAccessControl"
-      ) {
-        const alb_list = protoOpenx["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        // console.log(alb_list, "=====");
-        alb_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
+      switch (result.verb) {
+        case "list":
+          if (
+            result.namespace === ns &&
+            result.groupVersionKind.kind === "AliyunAccessControl"
+          ) {
+            const acl_list = protoOpenx["v1"][
+              `${result.groupVersionKind.kind}List`
+            ].decode(result.raw).items;
+            acl_list.sort((itemA, itemB) => {
+              return (
+                itemB.metadata.creationTimestamp.seconds -
+                itemA.metadata.creationTimestamp.seconds
+              );
+            });
+            this.acl_list = [];
+            for (let node of acl_list) {
+              this.acl_list.push(node);
+            }
+          }
+          break;
+        case "create":
+          if (result.code === 0) {
+            Notification({
+              title: "新增成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "新增失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          break;
+        case "delete":
+          if (result.code === 0) {
+            Notification({
+              title: "删除成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "删除失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          this.get_acl_list(ns);
+          break;
+        case "update":
+          if (result.code === 0) {
+            Notification({
+              title: "更新成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "更新失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          this.get_acl_list(ns);
+          break;
+        case "watch":
+          const watchEvent = protoRequest.WatchEvent.decode(result.raw);
+          const decodeRaw = protoOpenx["v1"]["AliyunAccessControl"].decode(
+            watchEvent.raw
           );
-        });
-        this.alb_list = [];
-        for (let node of alb_list) {
-          this.alb_list.push(node);
-        }
+          if (watchEvent.type === "ADDED") {
+            this.acl_list.unshift(decodeRaw);
+          }
+          break;
       }
     },
     cancel_delete() {

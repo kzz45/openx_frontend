@@ -78,6 +78,15 @@ export const constantRoutes = [
           icon: "cm",
         },
       },
+      {
+        path: "test",
+        name: "Test",
+        component: () => import("@/views/k8s/app/test"),
+        meta: {
+          title: "测试",
+          icon: "cm",
+        },
+      },
     ],
   },
 
@@ -180,7 +189,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/appsv1/statefulset"),
         meta: {
           title: "StatefulSet",
-          icon: "build",
+          icon: "sts",
         },
       },
     ],

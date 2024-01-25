@@ -10,8 +10,6 @@
         :row-style="TableRowStyle"
       >
         <el-table-column type="selection" width="40"> </el-table-column>
-        <el-table-column label="类型" prop="type"> </el-table-column>
-        <el-table-column label="原因" prop="reason"> </el-table-column>
         <el-table-column label="对象">
           <template slot-scope="scoped">
             {{ scoped.row.involvedObject.kind }}:{{
@@ -21,13 +19,20 @@
         </el-table-column>
         <el-table-column label="来源">
           <template slot-scope="scoped">
-            {{ scoped.row.source.component }}:{{ scoped.row.source.host }}
+            <span v-if="scoped.row.source.host === ''">
+              {{ scoped.row.source.component }}
+            </span>
+            <span v-else>
+              {{ scoped.row.source.component }}:{{ scoped.row.source.host }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="消息" prop="message"> </el-table-column>
+        <el-table-column label="类型" prop="type"> </el-table-column>
+        <el-table-column label="原因" prop="reason"> </el-table-column>
         <el-table-column label="时间">
           <template slot-scope="scoped">
-            <span v-if="scoped.row.reason === 'Scheduled'">
+            <!-- <span v-if="scoped.row.reason === 'Scheduled'">
               {{
                 scoped.row.eventTime.seconds
                   | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
@@ -38,7 +43,11 @@
                 scoped.row.firstTimestamp.seconds
                   | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
               }}
-            </span>
+            </span> -->
+            {{
+              scoped.row.firstTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="60px">
@@ -110,7 +119,6 @@ export default {
       );
     },
   },
-
   watch: {
     message: function () {
       this.socket_onmessage(this.message);
@@ -119,7 +127,7 @@ export default {
       this.get_event_list(this.namespace);
     },
   },
-  mounted() {
+  created() {
     let ns = localStorage.getItem("k8s_namespace");
     this.get_event_list(ns);
   },
@@ -153,6 +161,7 @@ export default {
       sendSocketMessage(senddata, store);
     },
     socket_onmessage(msg) {
+      let ns = localStorage.getItem("k8s_namespace");
       const result = protoRequest.Response.decode(msg);
       if (result.code === 1) {
         const err_msg = String.fromCharCode.apply(null, result.raw);
@@ -162,7 +171,7 @@ export default {
         });
       }
 
-      if (result.verb === "list" && result.namespace === this.namespace) {
+      if (result.verb === "list" && result.namespace === ns) {
         const event_list = protoApi["core"]["v1"][
           `${result.groupVersionKind.kind}List`
         ].decode(result.raw).items;
@@ -174,15 +183,12 @@ export default {
         for (let event of event_list) {
           this.event_list.push(event);
         }
-      } else if (
-        result.verb === "delete" &&
-        result.namespace === this.namespace
-      ) {
+      } else if (result.verb === "delete" && result.namespace === ns) {
         this.$message({
           type: "success",
           message: "删除成功",
         });
-        this.get_event_list(this.namespace);
+        this.get_event_list(ns);
       }
     },
     cancel_delete() {

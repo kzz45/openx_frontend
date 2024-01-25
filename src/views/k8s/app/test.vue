@@ -8,26 +8,36 @@
         @click="create_openx"
         >新增</el-button
       >
-      <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
-        >导入</el-button
-      >
-      <el-button type="primary" size="small" icon="el-icon-bottom"
-        >导入YAML</el-button
-      >
-      <el-button type="info" size="small" icon="el-icon-copy-document"
-        >拷贝</el-button
-      >
-      <el-button type="warning" size="small" icon="el-icon-edit"
-        >编辑</el-button
-      >
-      <el-button type="danger" size="small" icon="el-icon-delete"
-        >删除</el-button
-      > -->
       <el-table :data="openx_list" size="small" empty-text="啥也没有" border>
         <el-table-column type="selection" width="55"> </el-table-column>
-        <el-table-column label="名称"></el-table-column>
-        <el-table-column label="更新时间"></el-table-column>
-        <el-table-column label="操作"></el-table-column>
+        <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column
+          label="命名空间"
+          prop="metadata.namespace"
+        ></el-table-column>
+        <el-table-column label="创建时间">
+          <template slot-scope="scoped">
+            {{
+              scoped.row.metadata.creationTimestamp.seconds
+                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
+            }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180px;">
+          <template>
+            <el-button type="info" icon="el-icon-info" size="small"></el-button>
+            <el-button
+              type="primary"
+              icon="el-icon-top"
+              size="small"
+            ></el-button>
+            <el-button
+              type="danger"
+              icon="el-icon-delete"
+              size="small"
+            ></el-button>
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-dialog
@@ -42,48 +52,15 @@
           size="small"
           label-width="100px"
         >
-          <el-tabs v-model="dialog_tabs">
-            <el-tab-pane label="Metadata" name="metadata">
-              <MetadataTpl ref="metadatatpl"></MetadataTpl>
-            </el-tab-pane>
-            <el-tab-pane label="App" name="app">
-              <el-tag
-                v-for="(app_form, index) in openx_obj.spec.applications"
-                :key="index"
-                closable
-                :disable-transitions="false"
-                type="primary"
-                effect="dark"
-                style="margin-right: 10px"
-              >
-                {{ app_form.appName }}
-              </el-tag>
-              <el-input
-                v-if="app_name_visible"
-                v-model="app_form_appName"
-                ref="appTagInput"
-                class="input-new-tag"
-                size="small"
-                style="margin-right: 10px"
-                @keyup.enter.native="add_app_form"
-                @blur="add_app_form"
-              >
-              </el-input>
-              <el-button
-                v-else
-                class="button-new-tag"
-                size="small"
-                @click="app_name_input"
-                >+ New App</el-button
-              >
-              <el-divider content-position="right">Container</el-divider>
-              <OpenxAppTpl
-                v-if="openx_obj.spec.applications.length > 0"
-                :app_form="openx_obj.spec.applications[this.app_index]"
-              ></OpenxAppTpl>
-            </el-tab-pane>
-          </el-tabs>
         </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="openx_dialog = false"
+            >取 消</el-button
+          >
+          <el-button type="primary" size="small" @click="submit_openx">
+            确 定</el-button
+          >
+        </span>
       </el-dialog>
     </el-card>
   </div>
@@ -133,6 +110,11 @@ const OpenxObj = {
 
 export default {
   name: "OpenX",
+  filters: {
+    parseTime(time, cFormat) {
+      return parseTime(time, cFormat);
+    },
+  },
   components: {
     MetadataTpl,
     OpenxAppTpl,
@@ -151,6 +133,10 @@ export default {
     namespace: function () {
       this.get_openx_list(this.namespace);
     },
+  },
+  created() {
+    const ns = localStorage.getItem("k8s_namespace");
+    this.get_openx_list(ns);
   },
   data() {
     return {
@@ -180,42 +166,28 @@ export default {
     };
   },
   methods: {
-    add_app_form() {
-      let app_form_appName = this.app_form_appName;
-      let inputIndex = this.app_index;
-      if (app_form_appName) {
-        let default_app_obj = {
-          appIndex: inputIndex,
-          appName: app_form_appName,
-          replicas: 0,
-          watchPolicy: "manual",
-        };
-        if (
-          this.openx_obj.spec.applications.findIndex(
-            (object) => object.name === default_app_obj.appName
-          ) === -1
-        ) {
-          this.openx_obj.spec.applications.push(default_app_obj);
-        } else {
-          this.$message({ type: "warning", message: "名称冲突" });
-        }
-      }
-      this.app_name_visible = false;
-      this.app_form_appName = "";
-    },
-    app_name_input() {
-      this.app_name_visible = true;
-      this.$nextTick((_) => {
-        this.$refs.appTagInput.$refs.input.focus();
-      });
-    },
     create_openx() {
       this.openx_dialog = true;
       this.dialogStatus = "create_openx";
     },
     update_openx() {},
     delete_openx() {},
-    submit_openx() {},
+    submit_openx() {
+      if (this.dialogStatus === "create_openx") {
+        const ns = localStorage.getItem("k8s_namespace");
+        // console.log(OpenxObj, "====================");
+        const message = protoOpenx["v1"]["Openx"].create(OpenxObj);
+        const params = protoOpenx["v1"]["Openx"].encode(message).finish();
+        const createdata = initSocketData(
+          ns,
+          "openx.neverdown.org-v1-Openx",
+          "create",
+          params
+        );
+        sendSocketMessage(createdata, store);
+        this.openx_dialog = false;
+      }
+    },
     get_openx_list(ns) {
       const senddata = initSocketData(
         ns,
@@ -243,15 +215,17 @@ export default {
         const openx_list = protoOpenx["v1"][
           `${result.groupVersionKind.kind}List`
         ].decode(result.raw).items;
-        console.log(openx_list, "==============");
+        // console.log(openx_list, "==============");
         openx_list.sort((itemA, itemB) => {
           return (
             itemB.metadata.creationTimestamp.seconds -
             itemA.metadata.creationTimestamp.seconds
           );
         });
+        this.openx_list = [];
         for (const item of openx_list) {
-          console.log(item.spec, "======");
+          console.log(item, "======");
+          this.openx_list.push(item);
         }
       }
     },

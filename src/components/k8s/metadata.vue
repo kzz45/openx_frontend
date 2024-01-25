@@ -27,10 +27,10 @@
               @click="add_annotations"
             ></el-button>
             <el-tag
-              v-for="tag in metadata.annotations"
+              v-for="tag in initAnnotations(metadata.annotations)"
               :key="tag.label"
               closable
-              @close="close_annotation(tag)"
+              @close="close_annotation(tag.label)"
               >{{ tag.label }}:{{ tag.value }}</el-tag
             >
           </el-form-item>
@@ -43,9 +43,9 @@
               @click="add_labels"
             ></el-button>
             <el-tag
-              v-for="tag in metadata.labels"
+              v-for="tag in initAnnotations(metadata.labels)"
               :key="tag.label"
-              @close="close_label(tag)"
+              @close="close_label(tag.label)"
               closable
               >{{ tag.label }}:{{ tag.value }}</el-tag
             >
@@ -84,6 +84,7 @@
 
 <script>
 export default {
+  name: "MetadataTpl",
   data() {
     return {
       textMap: {
@@ -107,39 +108,54 @@ export default {
     };
   },
   methods: {
-    update_metadata(data) {
-      console.log("from father: ", data);
+    initAnnotations(ans) {
+      let tags = [];
+      for (let key in ans) {
+        tags.push({
+          label: key,
+          value: ans[key],
+        });
+      }
+      return tags;
     },
     close_annotation(tag) {
-      this.metadata.annotations = this.metadata.annotations.filter(
-        (item) => item !== tag
-      );
+      const annotations = Object.assign({}, this.metadata.annotations);
+      delete annotations[tag];
+      this.metadata.annotations = annotations;
     },
     close_label(tag) {
-      this.metadata.labels = this.metadata.labels.filter(
-        (item) => item !== tag
-      );
+      const labels = Object.assign({}, this.metadata.labels);
+      delete labels[tag];
+      this.metadata.labels = labels;
     },
     add_annotations() {
       this.kv_dialog = true;
       this.dialogStatus = "create_annotation";
+      this.kv_tag = Object.assign({}, "");
     },
     add_labels() {
       this.kv_dialog = true;
       this.dialogStatus = "create_label";
+      this.kv_tag = Object.assign({}, "");
     },
     submit_kv() {
       if (this.dialogStatus === "create_annotation") {
-        this.metadata.annotations.push({
-          label: this.kv_tag.label,
-          value: this.kv_tag.value,
-        });
+        const addKey = this.kv_tag.label;
+        const addValue = this.kv_tag.value;
+        if (addKey === "" || addValue === "") {
+          return;
+        } else {
+          this.metadata.annotations[addKey] = addValue;
+        }
         this.kv_dialog = false;
       } else if (this.dialogStatus === "create_label") {
-        this.metadata.labels.push({
-          label: this.kv_tag.label,
-          value: this.kv_tag.value,
-        });
+        const addKey = this.kv_tag.label;
+        const addValue = this.kv_tag.value;
+        if (addKey === "" || addValue === "") {
+          return;
+        } else {
+          this.metadata.labels[addKey] = addValue;
+        }
         this.kv_dialog = false;
       }
     },

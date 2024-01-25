@@ -179,11 +179,14 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
+import { Notification } from "element-ui";
 import protoRoot from "@/proto/proto";
 const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
 const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 import { initSocketData, updateSocketData, sendSocketMessage } from "@/api/k8s";
+import { binaryToStr } from "@/views/k8s/utils/utils";
+
 import MetaDataTpl from "@/components/k8s/metadata";
 
 const AlbObj = {
@@ -228,13 +231,13 @@ export default {
     namespace: function () {
       this.get_alb_list(this.namespace);
     },
-    isConnected: function () {
-      if (this.isConnected) {
-        console.log("......isConnected......");
-        const ns = localStorage.getItem("k8s_namespace");
-        this.get_alb_list(ns);
-      }
-    },
+    // isConnected: function () {
+    //   if (this.isConnected) {
+    //     console.log("......isConnected......");
+    //     const ns = localStorage.getItem("k8s_namespace");
+    //     this.get_alb_list(ns);
+    //   }
+    // },
   },
   created() {
     const ns = localStorage.getItem("k8s_namespace");
@@ -307,7 +310,6 @@ export default {
         params
       );
       sendSocketMessage(createdata, store);
-      
     },
     submit_alb() {
       if (this.dialogStatus === "create_alb") {
@@ -327,12 +329,6 @@ export default {
         );
         sendSocketMessage(createdata, store);
         this.alb_dialog = false;
-        const senddata = initSocketData(
-          ns,
-          "openx.neverdown.org-v1-AliyunLoadBalancer",
-          "list"
-        );
-        sendSocketMessage(senddata, store);
       } else if (this.dialogStatus === "update_alb") {
         //
       }
@@ -349,32 +345,129 @@ export default {
       let ns = localStorage.getItem("k8s_namespace");
       const result = protoRequest.Response.decode(msg);
       if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
+        Notification({
+          message: binaryToStr(result.raw),
           type: "error",
-          message: err_msg,
+          duration: 3000,
         });
       }
-      if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "AliyunLoadBalancer"
-      ) {
-        const alb_list = protoOpenx["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        // console.log(alb_list, "=====");
-        alb_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
+      switch (result.verb) {
+        case "list":
+          if (
+            result.namespace === ns &&
+            result.groupVersionKind.kind === "AliyunLoadBalancer"
+          ) {
+            const alb_list = protoOpenx["v1"][
+              `${result.groupVersionKind.kind}List`
+            ].decode(result.raw).items;
+            alb_list.sort((itemA, itemB) => {
+              return (
+                itemB.metadata.creationTimestamp.seconds -
+                itemA.metadata.creationTimestamp.seconds
+              );
+            });
+            this.alb_list = [];
+            for (let node of alb_list) {
+              this.alb_list.push(node);
+            }
+          }
+          break;
+        case "create":
+          if (result.code === 0) {
+            Notification({
+              title: "新增成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "新增失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          break;
+        case "delete":
+          if (result.code === 0) {
+            Notification({
+              title: "删除成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "删除失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          this.get_alb_list(ns);
+          break;
+        case "update":
+          if (result.code === 0) {
+            Notification({
+              title: "更新成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "更新失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          this.get_alb_list(ns);
+          break;
+        case "watch":
+          const watchEvent = protoRequest.WatchEvent.decode(result.raw);
+          const decodeRaw = protoOpenx["v1"]["AliyunLoadBalancer"].decode(
+            watchEvent.raw
           );
-        });
-        this.alb_list = [];
-        for (let node of alb_list) {
-          this.alb_list.push(node);
-        }
+          // console.log(decodeRaw, "watch", watchEvent.type);
+          if (watchEvent.type === "ADDED") {
+            this.alb_list.unshift(decodeRaw);
+          }
+          break;
       }
+      // if (
+      //   result.verb === "list" &&
+      //   result.namespace === ns &&
+      //   result.groupVersionKind.kind === "AliyunLoadBalancer"
+      // ) {
+      //   const alb_list = protoOpenx["v1"][
+      //     `${result.groupVersionKind.kind}List`
+      //   ].decode(result.raw).items;
+      //   // console.log(alb_list, "=====");
+      //   alb_list.sort((itemA, itemB) => {
+      //     return (
+      //       itemB.metadata.creationTimestamp.seconds -
+      //       itemA.metadata.creationTimestamp.seconds
+      //     );
+      //   });
+      //   this.alb_list = [];
+      //   for (let node of alb_list) {
+      //     this.alb_list.push(node);
+      //   }
+      // } else if (
+      //   result.verb === "create" &&
+      //   result.namespace === ns &&
+      //   result.groupVersionKind.kind === "AliyunLoadBalancer"
+      // ) {
+      //   //
+      // } else if (
+      //   result.verb === "delete" &&
+      //   result.namespace === ns &&
+      //   result.groupVersionKind.kind === "AliyunLoadBalancer"
+      // ) {
+      //   //
+      // }
     },
     initAnnotations(ans) {
       let tags = [];
