@@ -334,7 +334,23 @@ export default {
       this.openx_obj = Object.assign({}, row);
       this.app_index = 0;
     },
-    delete_openx(row) {},
+    delete_openx(row) {
+      this.openx_obj = Object.assign({}, row);
+      const ns = localStorage.getItem("k8s_namespace");
+      const message = protoOpenx["v1"]["Openx"].create(
+        this.openx_obj
+      );
+      const params = protoOpenx["v1"]["Openx"]
+        .encode(message)
+        .finish();
+      const delete_data = initSocketData(
+        ns,
+        "openx.neverdown.org-v1-Openx",
+        "delete",
+        params
+      );
+      sendSocketMessage(delete_data, store);
+    },
     cancel_delete() {
       Notification({
         message: "你考虑的很全面",
@@ -426,6 +442,7 @@ export default {
               duration: 3000,
             });
           }
+          this.get_openx_list(ns);
           break;
         case "list":
           if (
