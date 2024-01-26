@@ -38,7 +38,76 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column label="操作"></el-table-column>
+        <el-table-column label="操作" width="180px">
+          <template slot-scope="scoped">
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="small"
+              @click="update_openx(scoped.row)"
+            ></el-button>
+            <el-popconfirm
+              title="确定删除吗？"
+              confirm-button-text="确定"
+              cancel-button-text="不了"
+              style="margin-left: 10px"
+              @confirm="delete_openx(scoped.row)"
+              @cancel="cancel_delete"
+            >
+              <el-button
+                slot="reference"
+                type="danger"
+                icon="el-icon-delete"
+                size="small"
+              ></el-button>
+            </el-popconfirm>
+            <el-tooltip
+              class="item"
+              effect="dark"
+              content="更多"
+              placement="top"
+              style="margin-left: 10px"
+            >
+              <el-dropdown
+                trigger="hover"
+                @command="
+                  (command) => {
+                    openx_command(command, scoped.row);
+                  }
+                "
+              >
+                <el-button type="warning" icon="el-icon-menu" size="small">
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item
+                    command="export"
+                    icon="el-icon-c-scale-to-original"
+                    style="color: #f8c471"
+                    >伸缩</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    command="export"
+                    icon="el-icon-top"
+                    style="color: #409eff"
+                    >导出</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    command="export_yaml"
+                    icon="el-icon-document"
+                    style="color: #67c23a"
+                    >YAML</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    command="export_yaml"
+                    icon="el-icon-refresh"
+                    style="color: #ec7063"
+                    >重启</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </el-dropdown>
+            </el-tooltip>
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-dialog
@@ -55,7 +124,10 @@
         >
           <el-tabs v-model="dialog_tabs">
             <el-tab-pane label="元数据" name="metadata">
-              <MetadataTpl ref="metadatatpl"></MetadataTpl>
+              <MetadataTpl
+                ref="metadatatpl"
+                :metadata="openx_obj.metadata"
+              ></MetadataTpl>
             </el-tab-pane>
             <el-tab-pane label="应用" name="app">
               <el-tag
@@ -89,14 +161,22 @@
                 @click="app_name_input"
                 >+ 添加</el-button
               >
-              <el-divider content-position="right">Container</el-divider>
+              <el-divider content-position="right">应用配置</el-divider>
               <OpenxAppTpl
                 v-if="openx_obj.spec.applications.length > 0"
-                :app_form="openx_obj.spec.applications[this.app_index]"
+                :application_form="openx_obj.spec.applications[this.app_index]"
               ></OpenxAppTpl>
             </el-tab-pane>
           </el-tabs>
         </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="openx_dialog = false"
+            >取 消</el-button
+          >
+          <el-button type="primary" size="small" @click="submit_openx"
+            >确 定</el-button
+          >
+        </span>
       </el-dialog>
     </el-card>
   </div>
@@ -106,7 +186,9 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
+import { Notification } from "element-ui";
 import { initSocketData, sendSocketMessage } from "@/api/k8s";
+import { binaryToStr } from "@/views/k8s/utils/utils";
 import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
@@ -116,6 +198,12 @@ import MetadataTpl from "@/components/k8s/metadata";
 import OpenxAppTpl from "@/components/k8s/openxapp";
 
 const Openxgvk = "openx.neverdown.org-v1-Openx";
+const MetadataObj = {
+  name: "",
+  namespace: localStorage.getItem("k8s_namespace") || "",
+  labels: {},
+  annotations: {},
+};
 
 export default {
   name: "OpenX",
@@ -131,7 +219,7 @@ export default {
   computed: {
     ...mapGetters(["message", "namespace"]),
   },
-  mounted() {
+  created() {
     let ns = localStorage.getItem("k8s_namespace");
     this.get_openx_list(ns);
   },
@@ -175,11 +263,33 @@ export default {
       let app_form_appName = this.app_form_appName;
       let inputIndex = this.app_index;
       if (app_form_appName) {
-        let default_app_obj = {
+        const default_app_obj = {
           appIndex: inputIndex,
           appName: app_form_appName,
-          replicas: 0,
+          replicas: 1,
           watchPolicy: "manual",
+          pod: {
+            // labels: {},
+            // annotations: {},
+            spec: {
+              containers: [
+                {
+                  name: "",
+                  image: "",
+                  resources: {
+                    limits: {},
+                    requests: {},
+                  },
+                  env: [],
+                  args: [],
+                  ports: [],
+                  command: [],
+                  volumeMounts: [],
+                },
+              ],
+              volumes: [],
+            },
+          },
         };
         if (
           this.openx_obj.spec.applications.findIndex(
@@ -211,12 +321,46 @@ export default {
     },
     create_openx() {
       this.openx_dialog = true;
+      this.dialog_tabs = "metadata";
       this.dialogStatus = "create_openx";
+      this.openx_obj.metadata = Object.assign({}, MetadataObj);
       this.openx_obj.spec.applications = [];
     },
-    update_openx(row) {},
+    update_openx(row) {
+      this.openx_dialog = true;
+      this.dialog_tabs = "metadata";
+      this.dialogStatus = "update_openx";
+      // console.log(row, "==================");
+      this.openx_obj = Object.assign({}, row);
+      this.app_index = 0;
+    },
     delete_openx(row) {},
-    submit_openx() {},
+    cancel_delete() {
+      Notification({
+        message: "你考虑的很全面",
+        type: "warning",
+        duration: 3000,
+      });
+    },
+    openx_command(row) {},
+    submit_openx() {
+      if (this.dialogStatus === "create_openx") {
+        console.log(this.openx_obj, "=================");
+        const ns = localStorage.getItem("k8s_namespace");
+        const message = protoOpenx["v1"]["Openx"].create(this.openx_obj);
+        const params = protoOpenx["v1"]["Openx"].encode(message).finish();
+        const createdata = initSocketData(
+          ns,
+          "openx.neverdown.org-v1-Openx",
+          "create",
+          params
+        );
+        sendSocketMessage(createdata, store);
+        this.openx_dialog = false;
+      } else if (this.dialogStatus === "update_openx") {
+        //
+      }
+    },
     get_openx_list(ns) {
       const senddata = initSocketData(ns, Openxgvk, "list");
       sendSocketMessage(senddata, store);
@@ -225,33 +369,91 @@ export default {
       let ns = localStorage.getItem("k8s_namespace");
       const result = protoRequest.Response.decode(msg);
       if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
+        Notification({
+          message: binaryToStr(result.raw),
           type: "error",
-          message: err_msg,
+          duration: 3000,
         });
       }
-      // console.log("==================", result, "=================");
-      if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "Openx"
-      ) {
-        const openx_list = protoOpenx["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        // console.log(openx_list, "==============");
-        openx_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
-          );
-        });
-        this.openx_list = [];
-        for (const item of openx_list) {
-          // console.log(item.spec, "======");
-          this.openx_list.push(item);
-        }
+      switch (result.verb) {
+        case "create":
+          if (result.code === 0) {
+            Notification({
+              title: "新增成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "新增失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          break;
+        case "update":
+          if (result.code === 0) {
+            Notification({
+              title: "更新成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "更新失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          break;
+        case "delete":
+          if (result.code === 0) {
+            Notification({
+              title: "删除成功",
+              message: "success",
+              type: "success",
+              duration: 3000,
+            });
+          } else {
+            Notification({
+              title: "删除失败",
+              message: binaryToStr(result.raw),
+              type: "error",
+              duration: 3000,
+            });
+          }
+          break;
+        case "list":
+          if (
+            result.namespace === ns &&
+            result.groupVersionKind.kind === "Openx"
+          ) {
+            const openx_list = protoOpenx["v1"][
+              `${result.groupVersionKind.kind}List`
+            ].decode(result.raw).items;
+            openx_list.sort((itemA, itemB) => {
+              return (
+                itemB.metadata.creationTimestamp.seconds -
+                itemA.metadata.creationTimestamp.seconds
+              );
+            });
+            this.openx_list = [];
+            for (const item of openx_list) {
+              this.openx_list.push(item);
+            }
+          }
+          break;
+        case "watch":
+          const watchEvent = protoRequest.WatchEvent.decode(result.raw);
+          const decodeRaw = protoOpenx["v1"]["Openx"].decode(watchEvent.raw);
+          if (watchEvent.type === "ADDED") {
+            this.openx_list.unshift(decodeRaw);
+          }
+          break;
       }
     },
   },

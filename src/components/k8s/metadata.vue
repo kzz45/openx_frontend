@@ -85,6 +85,19 @@
 <script>
 export default {
   name: "MetadataTpl",
+  props: {
+    metadata: {
+      type: Object,
+      default: () => {
+        return {
+          name: "",
+          namespace: localStorage.getItem("k8s_namespace") || "",
+          labels: {},
+          annotations: {},
+        };
+      },
+    },
+  },
   data() {
     return {
       textMap: {
@@ -99,12 +112,12 @@ export default {
         label: "",
         value: "",
       },
-      metadata: {
-        name: "",
-        namespace: localStorage.getItem("k8s_namespace") || "",
-        labels: [],
-        annotations: [],
-      },
+      // metadata: {
+      //   name: "",
+      //   namespace: localStorage.getItem("k8s_namespace") || "",
+      //   labels: [],
+      //   annotations: [],
+      // },
     };
   },
   methods: {
