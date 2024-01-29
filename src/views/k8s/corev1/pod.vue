@@ -1,19 +1,10 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <!-- <el-button type="warning" size="small" icon="el-icon-edit"
-        >编辑</el-button
-      > -->
       <el-button type="danger" size="small" icon="el-icon-delete"
         >批量删除</el-button
       >
-      <el-table
-        :data="page_pod_list"
-        size="mini"
-        empty-text="啥也没有"
-        border
-        fit
-      >
+      <el-table :data="pod_list" size="mini" empty-text="啥也没有" border>
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
         <el-table-column
@@ -22,7 +13,16 @@
         ></el-table-column>
         <el-table-column label="PodIP" prop="status.podIP"></el-table-column>
         <el-table-column label="Node" prop="status.hostIP"></el-table-column>
-        <el-table-column label="状态" prop="status.phase"></el-table-column>
+        <el-table-column label="状态" prop="status.phase">
+          <template slot-scope="scoped">
+            <el-tag
+              v-if="scoped.row.status.phase === 'Running'"
+              type="success"
+              >{{ scoped.row.status.phase }}</el-tag
+            >
+            <el-tag v-else type="danger">{{ scoped.row.status.phase }}</el-tag>
+          </template>
+        </el-table-column>
         <!-- <el-table-column label="重启次数"></el-table-column> -->
         <el-table-column label="创建时间">
           <template slot-scope="scoped">
@@ -142,11 +142,21 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
-import { initSocketData, sendSocketMessage } from "@/api/k8s";
+import { Notification } from "element-ui";
+import { binaryToStr } from "@/views/k8s/utils/utils";
+import {
+  initSocketData,
+  sendSocketMessage,
+  deleteSocketData,
+  getGvkGroup,
+  returnResponse,
+} from "@/api/k8s";
 import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
+
+const Podgvk = "core-v1-Pod";
 
 export default {
   name: "PodList",
@@ -164,13 +174,29 @@ export default {
       );
     },
   },
-  mounted() {
+  created() {
     let ns = localStorage.getItem("k8s_namespace");
     this.get_pod_list(ns);
   },
   watch: {
-    message: function () {
-      this.socket_onmessage(this.message);
+    message: function (newMsg, oldMsg) {
+      let ns = localStorage.getItem("k8s_namespace");
+      let gvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "Pod",
+      };
+      let result_list = returnResponse(
+        newMsg,
+        ns,
+        gvkObj,
+        function () {},
+        this.updateWatch(),
+        this.get_pod_list(ns)
+      );
+      if (result_list) {
+        this.pod_list = result_list;
+      }
     },
     namespace: function () {
       this.get_pod_list(this.namespace);
@@ -183,42 +209,108 @@ export default {
     };
   },
   methods: {
+    tableRowStyle({ row, rowIndex }) {
+      let rowBackground = {};
+      if (row.status.phase === "Running") {
+        return rowBackground;
+      } else {
+        rowBackground.background = "#f56c6c";
+        return rowBackground;
+      }
+    },
     get_pod_list(ns) {
-      const senddata = initSocketData(ns, "core-v1-Pod", "list");
+      const senddata = initSocketData(ns, Podgvk, "list");
       sendSocketMessage(senddata, store);
     },
-    delete_pod() {},
-    // --------------------------------------------------
-    socket_onmessage(msg) {
+    delete_pod(row) {
       let ns = localStorage.getItem("k8s_namespace");
-      const result = protoRequest.Response.decode(msg);
-      if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
-          type: "error",
-          message: err_msg,
+      const gvkGroup = getGvkGroup(Podgvk);
+      const params = deleteSocketData(gvkGroup, row);
+      const delete_data = initSocketData(ns, Podgvk, "delete", params);
+      sendSocketMessage(delete_data, store);
+    },
+    // --------------------------------------------------
+    // socket_onmessage(msg) {
+    //   let ns = localStorage.getItem("k8s_namespace");
+    //   const result = protoRequest.Response.decode(msg);
+    //   if (result.code === 1) {
+    //     Notification({
+    //       message: binaryToStr(result.raw),
+    //       type: "error",
+    //       duration: 3000,
+    //     });
+    //   }
+    //   switch (result.verb) {
+    //     case "list":
+    //       if (
+    //         result.namespace === ns &&
+    //         result.groupVersionKind.kind === "Pod"
+    //       ) {
+    //         const pod_list = protoApi["core"]["v1"][
+    //           `${result.groupVersionKind.kind}List`
+    //         ].decode(result.raw).items;
+    //         pod_list.sort((itemA, itemB) => {
+    //           return (
+    //             itemB.metadata.creationTimestamp.seconds -
+    //             itemA.metadata.creationTimestamp.seconds
+    //           );
+    //         });
+    //         this.pod_list = [];
+    //         for (let item of pod_list) {
+    //           this.pod_list.push(item);
+    //         }
+    //       }
+    //       break;
+    //     case "create":
+    //       break;
+    //     case "delete":
+    //       if (result.code === 0) {
+    //         Notification({
+    //           title: "删除成功",
+    //           message: "success",
+    //           type: "success",
+    //           duration: 3000,
+    //         });
+    //       } else {
+    //         Notification({
+    //           title: "删除失败",
+    //           message: binaryToStr(result.raw),
+    //           type: "error",
+    //           duration: 3000,
+    //         });
+    //       }
+    //       this.get_pod_list(ns);
+    //       break;
+    //     case "update":
+    //       break;
+    //     case "watch":
+    //       const watchEvent = protoRequest.WatchEvent.decode(result.raw);
+    //       const decodeRaw = protoApi["core"]["v1"]["Pod"].decode(
+    //         watchEvent.raw
+    //       );
+    //       // console.log(watchEvent.type, "=============", decodeRaw);
+
+    //       break;
+    //   }
+    // },
+    updateWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.pod_list.unshift(decodeRaw);
+      } else if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.pod_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-      }
-      if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "Pod"
-      ) {
-        // console.log("==================", result, "=================");
-        const pod_list = protoApi["core"]["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        // console.log(pod_list);
-        pod_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
-          );
+        if (modIndex >= 0) {
+          this.pod_list[modIndex] = updateRaw;
+        }
+      } else if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.pod_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-        this.pod_list = [];
-        for (let item of pod_list) {
-          // console.log(item, "=========================");
-          this.pod_list.push(item);
+        if (modIndex >= 0) {
+          this.pod_list.splice(modIndex, 1);
         }
       }
     },
