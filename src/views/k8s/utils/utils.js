@@ -1,4 +1,5 @@
 import store from "@/store";
+import moment from "moment";
 import { cloneDeep } from "lodash";
 import { Notification } from "element-ui";
 import protoRoot from "@/proto/proto";
@@ -249,4 +250,50 @@ export function updateSocketData(gvk, item) {
     return param;
   }
   return false;
+}
+
+export function formatTime(timestamp) {
+  return moment(timestamp * 1000).format("YYYY-MM-DD HH:mm:ss");
+}
+
+export function getInfoInGvk(types, details, gvk) {
+  if (types === "createTime") {
+    return formatTime(details.metadata.creationTimestamp.seconds);
+  }
+  if (gvk === "openx.neverdown.org-v1-Openx") {
+    if (types === "applications") {
+      const appInfo = [];
+      let appNameList = [];
+      if (details.spec.applications) {
+        for (let app of details.spec.applications) {
+          appNameList.push(app.appName);
+        }
+        appNameList.sort();
+        for (let name of appNameList) {
+          const appIndex = details.spec.applications.findIndex((ap) => {
+            return ap.appName === name;
+          });
+          appInfo.push(details.spec.applications[appIndex]);
+        }
+      }
+      return appInfo;
+    }
+    if (types === "init") {
+      const appInfo = [];
+      let appNameList = [];
+      if (details.spec.applications) {
+        for (let app of details.spec.applications) {
+          appNameList.push(app.appName);
+        }
+        appNameList.sort();
+        for (let name of appNameList) {
+          const appIndex = details.spec.applications.findIndex((ap) => {
+            return ap.appName === name;
+          });
+          appInfo.push(details.spec.applications[appIndex]);
+        }
+      }
+      return appInfo;
+    }
+  }
 }

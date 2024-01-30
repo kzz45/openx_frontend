@@ -19,7 +19,7 @@
                 <el-input-number
                   v-model="application_form.replicas"
                   :min="0"
-                  :max="10"
+                  :max="100"
                   style="width: 200px"
                 ></el-input-number>
               </el-form-item>
@@ -120,31 +120,6 @@
           </el-row>
           <el-row>
             <el-col :span="12">
-              <el-form-item label="CPU限制" prop="cpu_limit">
-                <el-input
-                  v-model="
-                    application_form.pod.spec.containers[0].resources.limits.cpu
-                  "
-                >
-                  <template slot="append">.Core</template>
-                </el-input>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="CPU请求" prop="cpu_request">
-                <el-input
-                  v-model="
-                    application_form.pod.spec.containers[0].resources.requests
-                      .cpu
-                  "
-                >
-                  <template slot="append">.Core</template>
-                </el-input>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row>
-            <el-col :span="12">
               <el-form-item label="内存限制" prop="mem_limit">
                 <el-input
                   v-model="
@@ -152,7 +127,7 @@
                       .memory
                   "
                 >
-                  <template slot="append">.Mi</template>
+                  <template slot="append">Mi</template>
                 </el-input>
               </el-form-item>
             </el-col>
@@ -164,11 +139,37 @@
                       .memory
                   "
                 >
-                  <template slot="append">.Mi</template>
+                  <template slot="append">Mi</template>
                 </el-input>
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="CPU限制" prop="cpu_limit">
+                <el-input
+                  v-model="
+                    application_form.pod.spec.containers[0].resources.limits.cpu
+                  "
+                >
+                  <template slot="append">Core</template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="CPU请求" prop="cpu_request">
+                <el-input
+                  v-model="
+                    application_form.pod.spec.containers[0].resources.requests
+                      .cpu
+                  "
+                >
+                  <template slot="append">Core</template>
+                </el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
           <el-row>
             <el-col :span="24">
               <el-form-item label="端口" prop="ports">

@@ -13,29 +13,87 @@
       >
       <el-button type="primary" size="small" icon="el-icon-bottom"
         >导入YAML</el-button
-      >
-      <el-button type="info" size="small" icon="el-icon-copy-document"
+      > -->
+      <el-button
+        v-if="multiple_openx_list.length > 0"
+        type="info"
+        size="small"
+        icon="el-icon-copy-document"
         >拷贝</el-button
       >
-      <el-button type="warning" size="small" icon="el-icon-edit"
+      <el-button
+        v-if="multiple_openx_list.length > 0"
+        type="warning"
+        size="small"
+        icon="el-icon-edit"
         >编辑</el-button
       >
-      <el-button type="danger" size="small" icon="el-icon-delete"
+      <el-button
+        v-if="multiple_openx_list.length > 0"
+        type="danger"
+        size="small"
+        icon="el-icon-delete"
         >删除</el-button
-      > -->
-      <el-table :data="openx_list" size="small" empty-text="啥也没有" border>
+      >
+      <el-table
+        :data="page_openx_list"
+        size="small"
+        empty-text="啥也没有"
+        border
+        @selection-change="handleSelectionChange"
+      >
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
+        <el-table-column label="应用名称">
+          <template slot-scope="scoped">
+            <el-tag
+              v-for="(info, index) in getInfoInGvk(
+                'applications',
+                scoped.row,
+                'openx.neverdown.org-v1-Openx'
+              )"
+              :key="index"
+              >{{ info.appName }}</el-tag
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="副本/状态">
+          <template slot-scope="scoped">
+            <div
+              v-for="(info, index) in getInfoInGvk(
+                'init',
+                scoped.row,
+                'openx.neverdown.org-v1-Openx'
+              )"
+              :key="index"
+            >
+              <el-tag @click.stop="update_openx(scoped.row)">{{
+                info.replicas
+              }}</el-tag>
+              <el-tag
+                v-if="Number(info.replicas) > 0"
+                type="success"
+                @click.stop="edit_pod"
+                style="margin-left: 10px"
+                >Run</el-tag
+              >
+              <el-tag
+                v-else
+                type="danger"
+                @click.stop="edit_pod"
+                style="margin-left: 10px"
+                >Stop</el-tag
+              >
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column
           label="命名空间"
           prop="metadata.namespace"
         ></el-table-column>
         <el-table-column label="创建时间">
           <template slot-scope="scoped">
-            {{
-              scoped.row.metadata.creationTimestamp.seconds
-                | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-            }}
+            {{ formatTime(scoped.row.metadata.creationTimestamp.seconds) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180px">
@@ -187,8 +245,8 @@ import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
 import { Notification } from "element-ui";
-import { initSocketData, sendSocketMessage } from "@/api/k8s";
-import { binaryToStr } from "@/views/k8s/utils/utils";
+import { initSocketData, sendSocketMessage, returnResponse } from "@/api/k8s";
+import { binaryToStr, formatTime, getInfoInGvk } from "@/views/k8s/utils/utils";
 import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
@@ -198,6 +256,7 @@ import MetadataTpl from "@/components/k8s/metadata";
 import OpenxAppTpl from "@/components/k8s/openxapp";
 
 const Openxgvk = "openx.neverdown.org-v1-Openx";
+
 const MetadataObj = {
   name: "",
   namespace: localStorage.getItem("k8s_namespace") || "",
@@ -217,18 +276,49 @@ export default {
     OpenxAppTpl,
   },
   computed: {
-    ...mapGetters(["message", "namespace"]),
+    ...mapGetters(["message", "namespace", "isConnected"]),
+    page_openx_list: function () {
+      this.openx_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
+      return this.openx_list.slice(
+        (this.currentPage - 1) * 10,
+        this.currentPage * 10
+      );
+    },
   },
   created() {
-    let ns = localStorage.getItem("k8s_namespace");
-    this.get_openx_list(ns);
+    this.get_openx_list();
   },
   watch: {
-    message: function () {
-      this.socket_onmessage(this.message);
+    isConnected: function (newVal) {
+      if (newVal) {
+        console.log(newVal, "=======");
+      }
+    },
+    message: function (newVal) {
+      let ns = localStorage.getItem("k8s_namespace");
+      let gvkObj = {
+        group: "openx.neverdown.org",
+        version: "v1",
+        kind: "Openx",
+      };
+      let result_list = returnResponse(
+        newVal,
+        ns,
+        gvkObj,
+        function () {},
+        this.updateWatch,
+        this.get_openx_list
+      );
+      if (result_list) {
+        this.openx_list = result_list;
+      }
     },
     namespace: function () {
-      this.get_openx_list(this.namespace);
+      this.get_openx_list();
     },
   },
   data() {
@@ -251,7 +341,9 @@ export default {
           applications: [],
         },
       },
+      currentPage: 1,
       openx_list: [],
+      multiple_openx_list: [],
       app_form_list: [],
       app_name_visible: false,
       app_form_appName: "",
@@ -259,6 +351,16 @@ export default {
     };
   },
   methods: {
+    binaryToStr,
+    formatTime,
+    getInfoInGvk,
+    loadOver() {
+      this.table_loading = false;
+    },
+    handleSelectionChange(val) {
+      console.log(val, "===========");
+      this.multiple_openx_list = val;
+    },
     add_app_form() {
       let app_form_appName = this.app_form_appName;
       let inputIndex = this.app_index;
@@ -330,25 +432,16 @@ export default {
       this.openx_dialog = true;
       this.dialog_tabs = "metadata";
       this.dialogStatus = "update_openx";
-      // console.log(row, "==================");
       this.openx_obj = Object.assign({}, row);
       this.app_index = 0;
     },
+    edit_pod() {},
     delete_openx(row) {
       this.openx_obj = Object.assign({}, row);
       const ns = localStorage.getItem("k8s_namespace");
-      const message = protoOpenx["v1"]["Openx"].create(
-        this.openx_obj
-      );
-      const params = protoOpenx["v1"]["Openx"]
-        .encode(message)
-        .finish();
-      const delete_data = initSocketData(
-        ns,
-        "openx.neverdown.org-v1-Openx",
-        "delete",
-        params
-      );
+      const message = protoOpenx["v1"]["Openx"].create(this.openx_obj);
+      const params = protoOpenx["v1"]["Openx"].encode(message).finish();
+      const delete_data = initSocketData(ns, Openxgvk, "delete", params);
       sendSocketMessage(delete_data, store);
     },
     cancel_delete() {
@@ -365,112 +458,37 @@ export default {
         const ns = localStorage.getItem("k8s_namespace");
         const message = protoOpenx["v1"]["Openx"].create(this.openx_obj);
         const params = protoOpenx["v1"]["Openx"].encode(message).finish();
-        const createdata = initSocketData(
-          ns,
-          "openx.neverdown.org-v1-Openx",
-          "create",
-          params
-        );
+        const createdata = initSocketData(ns, Openxgvk, "create", params);
         sendSocketMessage(createdata, store);
         this.openx_dialog = false;
       } else if (this.dialogStatus === "update_openx") {
-        //
+        console.log(this.opex_obj, "------------------");
       }
     },
-    get_openx_list(ns) {
+    get_openx_list() {
+      const ns = localStorage.getItem("k8s_namespace");
       const senddata = initSocketData(ns, Openxgvk, "list");
       sendSocketMessage(senddata, store);
     },
-    socket_onmessage(msg) {
-      let ns = localStorage.getItem("k8s_namespace");
-      const result = protoRequest.Response.decode(msg);
-      if (result.code === 1) {
-        Notification({
-          message: binaryToStr(result.raw),
-          type: "error",
-          duration: 3000,
+    updateWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.openx_list.unshift(decodeRaw);
+      } else if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.openx_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-      }
-      switch (result.verb) {
-        case "create":
-          if (result.code === 0) {
-            Notification({
-              title: "新增成功",
-              message: "success",
-              type: "success",
-              duration: 3000,
-            });
-          } else {
-            Notification({
-              title: "新增失败",
-              message: binaryToStr(result.raw),
-              type: "error",
-              duration: 3000,
-            });
-          }
-          break;
-        case "update":
-          if (result.code === 0) {
-            Notification({
-              title: "更新成功",
-              message: "success",
-              type: "success",
-              duration: 3000,
-            });
-          } else {
-            Notification({
-              title: "更新失败",
-              message: binaryToStr(result.raw),
-              type: "error",
-              duration: 3000,
-            });
-          }
-          break;
-        case "delete":
-          if (result.code === 0) {
-            Notification({
-              title: "删除成功",
-              message: "success",
-              type: "success",
-              duration: 3000,
-            });
-          } else {
-            Notification({
-              title: "删除失败",
-              message: binaryToStr(result.raw),
-              type: "error",
-              duration: 3000,
-            });
-          }
-          this.get_openx_list(ns);
-          break;
-        case "list":
-          if (
-            result.namespace === ns &&
-            result.groupVersionKind.kind === "Openx"
-          ) {
-            const openx_list = protoOpenx["v1"][
-              `${result.groupVersionKind.kind}List`
-            ].decode(result.raw).items;
-            openx_list.sort((itemA, itemB) => {
-              return (
-                itemB.metadata.creationTimestamp.seconds -
-                itemA.metadata.creationTimestamp.seconds
-              );
-            });
-            this.openx_list = [];
-            for (const item of openx_list) {
-              this.openx_list.push(item);
-            }
-          }
-          break;
-        case "watch":
-          const watchEvent = protoRequest.WatchEvent.decode(result.raw);
-          const decodeRaw = protoOpenx["v1"]["Openx"].decode(watchEvent.raw);
-          if (watchEvent.type === "ADDED") {
-            this.openx_list.unshift(decodeRaw);
-          }
-          break;
+        if (modIndex >= 0) {
+          this.openx_list[modIndex] = updateRaw;
+        }
+      } else if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.openx_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.openx_list.splice(modIndex, 1);
+        }
       }
     },
   },
