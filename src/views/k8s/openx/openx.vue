@@ -8,12 +8,12 @@
         @click="create_openx"
         >新增</el-button
       >
-      <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
+      <el-button type="primary" size="small" icon="el-icon-bottom"
         >导入</el-button
       >
       <el-button type="primary" size="small" icon="el-icon-bottom"
         >导入YAML</el-button
-      > -->
+      >
       <el-button
         v-if="multiple_openx_list.length > 0"
         type="info"
@@ -138,7 +138,7 @@
                 </el-button>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item
-                    command="export"
+                    command="autoscale"
                     icon="el-icon-c-scale-to-original"
                     style="color: #f8c471"
                     >伸缩</el-dropdown-item
@@ -153,10 +153,10 @@
                     command="export_yaml"
                     icon="el-icon-document"
                     style="color: #67c23a"
-                    >YAML</el-dropdown-item
+                    >导出YAML</el-dropdown-item
                   >
                   <el-dropdown-item
-                    command="export_yaml"
+                    command="restart"
                     icon="el-icon-refresh"
                     style="color: #ec7063"
                     >重启</el-dropdown-item
@@ -236,6 +236,28 @@
           >
         </span>
       </el-dialog>
+
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="autoscale_dialog"
+        scrollable
+        width="30%"
+      >
+        <el-form size="small" label-width="100px">
+          <el-form-item label="应用"> </el-form-item>
+          <el-form-item label="副本" name="replicas">
+            <el-input-number size="small" v-model="replicas"></el-input-number>
+          </el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="autoscale_dialog = false"
+            >取 消</el-button
+          >
+          <el-button type="primary" size="small" @click="submit_openx"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -243,10 +265,20 @@
 <script>
 import store from "@/store";
 import { mapGetters } from "vuex";
+import json2yaml from "json2yaml";
+import { saveAs } from "file-saver";
 import { parseTime } from "@/utils";
 import { Notification } from "element-ui";
+import { cloneDeep, debounce } from "lodash";
 import { initSocketData, sendSocketMessage, returnResponse } from "@/api/k8s";
-import { binaryToStr, formatTime, getInfoInGvk } from "@/views/k8s/utils/utils";
+import {
+  binaryToStr,
+  formatTime,
+  getInfoInGvk,
+  initObject,
+  encodeify,
+  cancel_delete,
+} from "@/views/k8s/utils/utils";
 import protoRoot from "@/proto/proto";
 const protoApi = protoRoot.k8s.io.api;
 const protoRequest =
@@ -295,7 +327,7 @@ export default {
   watch: {
     isConnected: function (newVal) {
       if (newVal) {
-        console.log(newVal, "=======");
+        this.get_openx_list();
       }
     },
     message: function (newVal) {
@@ -309,7 +341,6 @@ export default {
         newVal,
         ns,
         gvkObj,
-        function () {},
         this.updateWatch,
         this.get_openx_list
       );
@@ -326,9 +357,12 @@ export default {
       textMap: {
         create_openx: "新增应用",
         update_openx: "编辑应用",
+        autoscale: "伸缩",
       },
       dialogStatus: "",
       openx_dialog: false,
+      autoscale_dialog: false,
+      replicas: 0,
       dialog_tabs: "metadata",
       openx_obj: {
         metadata: {
@@ -354,6 +388,7 @@ export default {
     binaryToStr,
     formatTime,
     getInfoInGvk,
+    cancel_delete,
     loadOver() {
       this.table_loading = false;
     },
@@ -444,17 +479,108 @@ export default {
       const delete_data = initSocketData(ns, Openxgvk, "delete", params);
       sendSocketMessage(delete_data, store);
     },
-    cancel_delete() {
+
+    openx_command(command, item) {
+      if (command === "export") {
+        //导出
+        this.export(item);
+      } else if (command === "autoscale") {
+        //伸缩
+        this.autoscale();
+      } else if (command === "export_yaml") {
+        //导出YAML
+        this.export_yaml(item);
+      } else if (command === "restart") {
+        //重启
+      }
+    },
+    autoscale(item) {
+      this.dialogStatus = "autoscale";
+      this.autoscale_dialog = true;
+    },
+    export(item) {
+      const cloneItem = cloneDeep(item);
+      // const nsGvk = "openx.neverdown.org-v1-Openx";
+      const initItem = initObject(Openxgvk);
+      if (initItem.metadata) {
+        for (let metaIndex in initItem.metadata) {
+          initItem.metadata[metaIndex] = cloneDeep(
+            cloneItem.metadata[metaIndex]
+          );
+        }
+      }
+      if (initItem.spec) {
+        for (let metaIndex in initItem.spec) {
+          initItem.spec[metaIndex] = cloneDeep(cloneItem.spec[metaIndex]);
+        }
+      } else {
+        initItem = cloneItem;
+      }
+      delete initItem.metadata.creationTimestamp;
+      const gvkArr = Openxgvk.split("-");
+      const gvkObj = {
+        group: gvkArr[0],
+        version: gvkArr[1],
+        kind: gvkArr[2],
+      };
+      const encodeItem = encodeify(gvkObj, initItem);
+      localStorage.setItem(Openxgvk, binaryToStr(encodeItem));
       Notification({
-        message: "你考虑的很全面",
-        type: "warning",
+        title: "导出成功",
+        message: "success",
+        type: "success",
         duration: 3000,
       });
     },
-    openx_command(row) {},
+    export_yaml(item) {
+      // const nsGvk = "openx.neverdown.org-v1-Openx";
+      const gvkArr = Openxgvk.split("-");
+      const cloneItem = cloneDeep(item);
+      let initItem = initObject(Openxgvk);
+      let fileName = "";
+      if (initItem.spec) {
+        for (let metaIndex in initItem.spec) {
+          initItem.spec[metaIndex] = cloneDeep(cloneItem.spec[metaIndex]);
+        }
+      } else {
+        for (let itemInitKey in initItem) {
+          if (!(itemInitKey == "spec" || itemInitKey == "metadata")) {
+            initItem[itemInitKey] = cloneItem[itemInitKey];
+          }
+        }
+      }
+      if (initItem.rules) {
+        for (let rule of initItem.rules) {
+          delete rule.resourceNames;
+          delete rule.nonResourceURLs;
+        }
+      }
+      if (initItem.metadata) {
+        fileName = item.metadata.name;
+        for (let metaIndex in initItem.metadata) {
+          initItem.metadata[metaIndex] = cloneDeep(
+            cloneItem.metadata[metaIndex]
+          );
+        }
+        let simpleMeta = {
+          name: initItem.metadata.name,
+          namespace: initItem.metadata.namespace,
+          labels: initItem.metadata.labels,
+          annotations: initItem.metadata.annotations,
+        };
+        initItem.metadata = simpleMeta;
+      }
+      const avk = {
+        apiVersion: `${gvkArr[0]}/${gvkArr[1]}`,
+        kind: `${gvkArr[2]}`,
+      };
+      const yamlData = json2yaml.stringify(Object.assign(avk, initItem));
+      const str = new Blob([yamlData], { type: "text/plain;charset=utf-8" });
+      saveAs(str, Openxgvk + "-" + fileName + ".yaml");
+    },
     submit_openx() {
       if (this.dialogStatus === "create_openx") {
-        console.log(this.openx_obj, "=================");
+        // console.log(this.openx_obj, "=================");
         const ns = localStorage.getItem("k8s_namespace");
         const message = protoOpenx["v1"]["Openx"].create(this.openx_obj);
         const params = protoOpenx["v1"]["Openx"].encode(message).finish();
@@ -463,6 +589,8 @@ export default {
         this.openx_dialog = false;
       } else if (this.dialogStatus === "update_openx") {
         console.log(this.opex_obj, "------------------");
+      } else if (this.dialogStatus === "autoscale") {
+        console.log("---------------");
       }
     },
     get_openx_list() {

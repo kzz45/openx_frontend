@@ -8,19 +8,19 @@
     >
       <el-row>
         <el-col :span="12">
-          <el-form-item label="Name">
+          <el-form-item label="名称">
             <el-input v-model="metadata.name"></el-input>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="Namespace">
+          <el-form-item label="命名空间">
             <el-input v-model="metadata.namespace"></el-input>
           </el-form-item>
         </el-col>
       </el-row>
       <el-row>
         <el-col :span="12">
-          <el-form-item label="Annotations">
+          <el-form-item label="注解">
             <el-button
               size="small"
               icon="el-icon-plus"
@@ -36,7 +36,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="Labels">
+          <el-form-item label="标签">
             <el-button
               size="small"
               icon="el-icon-plus"

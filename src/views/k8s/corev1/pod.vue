@@ -12,13 +12,19 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55"> </el-table-column>
+
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
-        <el-table-column
-          label="命名空间"
-          prop="metadata.namespace"
-        ></el-table-column>
+        <el-table-column label="更新策略" prop="">
+          <template slot-scope="scoped">
+            <el-tag>{{ showLabelPoliy(scoped.row.metadata) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="PodIP" prop="status.podIP"></el-table-column>
-        <el-table-column label="Node" prop="status.hostIP"></el-table-column>
+        <el-table-column label="节点IP" prop="status.hostIP"></el-table-column>
+        <el-table-column
+          label="节点名称"
+          prop="spec.nodeName"
+        ></el-table-column>
         <el-table-column label="状态" prop="status.phase">
           <template slot-scope="scoped">
             <el-tag
@@ -30,6 +36,10 @@
           </template>
         </el-table-column>
         <!-- <el-table-column label="重启次数"></el-table-column> -->
+        <el-table-column
+          label="命名空间"
+          prop="metadata.namespace"
+        ></el-table-column>
         <el-table-column label="创建时间">
           <template slot-scope="scoped">
             {{
@@ -38,7 +48,15 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180px;">
+        <el-table-column align="right" width="200px">
+          <template slot="header" slot-scope="scope">
+            <el-input
+              v-model="table_search"
+              size="mini"
+              placeholder="输入关键字搜索"
+              style="width: 160px"
+            ></el-input>
+          </template>
           <template slot-scope="scoped">
             <el-tooltip
               class="item"
@@ -130,6 +148,9 @@
             </el-popconfirm>
           </template>
         </el-table-column>
+        <!-- <el-table-column label="操作" width="180px;"> -->
+
+        <!-- </el-table-column> -->
       </el-table>
       <el-pagination
         background
@@ -148,8 +169,8 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
-// import { Notification } from "element-ui";
-// import { binaryToStr } from "@/views/k8s/utils/utils";
+import { Notification } from "element-ui";
+import { showLabelPoliy, cancel_delete } from "@/views/k8s/utils/utils";
 import {
   initSocketData,
   sendSocketMessage,
@@ -166,7 +187,7 @@ const Podgvk = "core-v1-Pod";
 
 function get_pod_list() {
   const ns = localStorage.getItem("k8s_namespace");
-  const senddata = initSocketData(ns, "core-v1-Pod", "list");
+  const senddata = initSocketData(ns, Podgvk, "list");
   sendSocketMessage(senddata, store);
 }
 
@@ -208,9 +229,8 @@ export default {
         newMsg,
         ns,
         gvkObj,
-        function () {},
         this.updateWatch,
-        get_pod_list
+        this.get_pod_list
       );
       if (result_list) {
         this.pod_list = result_list;
@@ -229,17 +249,21 @@ export default {
   data() {
     return {
       currentPage: 1,
+      table_search: "",
       pod_list: [],
       multiple_pod_list: [],
     };
   },
   methods: {
+    showLabelPoliy,
+    cancel_delete,
     handleSelectionChange(val) {
+      console.log(val);
       this.multiple_pod_list = val;
     },
     get_pod_list() {
       let ns = localStorage.getItem("k8s_namespace");
-      const senddata = initSocketData(ns, "core-v1-Pod", "list");
+      const senddata = initSocketData(ns, Podgvk, "list");
       sendSocketMessage(senddata, store);
     },
     delete_pod(row) {
@@ -270,12 +294,6 @@ export default {
           this.pod_list.splice(modIndex, 1);
         }
       }
-    },
-    cancel_delete() {
-      this.$message({
-        type: "warning",
-        message: "你考虑的很全面",
-      });
     },
   },
 };

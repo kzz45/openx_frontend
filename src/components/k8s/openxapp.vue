@@ -47,23 +47,21 @@
         <el-tab-pane label="Pod" name="pod">
           <el-row>
             <el-col :span="12">
-              <el-form-item label="Labels" prop="labels">
+              <el-form-item label="标签" prop="labels">
                 <el-button
                   size="small"
                   icon="el-icon-plus"
                   @click="add_labels"
                 ></el-button>
-                <!-- <el-input v-model="application_form.labels"></el-input> -->
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="Annotations" prop="annotations">
+              <el-form-item label="注解" prop="annotations">
                 <el-button
                   size="small"
                   icon="el-icon-plus"
                   @click="add_annotations"
                 ></el-button>
-                <!-- <el-input v-model="application_form.annotations"></el-input> -->
               </el-form-item>
             </el-col>
           </el-row>
@@ -98,7 +96,7 @@
           </el-row>
           <el-row>
             <el-col :span="12">
-              <el-form-item label="command" prop="command">
+              <el-form-item label="启动命令" prop="command">
                 <el-input
                   v-model="item.value"
                   v-for="(item, index) in application_form.pod.spec
@@ -108,7 +106,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="args" prop="args">
+              <el-form-item label="参数" prop="args">
                 <el-input
                   v-model="item.value"
                   v-for="(item, index) in application_form.pod.spec
@@ -173,11 +171,18 @@
           <el-row>
             <el-col :span="24">
               <el-form-item label="端口" prop="ports">
-                <el-button
-                  size="small"
-                  icon="el-icon-plus"
-                  @click="add_ports"
-                ></el-button>
+                <el-tooltip
+                  class="item"
+                  effect="dark"
+                  content="添加端口"
+                  placement="top"
+                >
+                  <el-button
+                    size="small"
+                    icon="el-icon-plus"
+                    @click="add_container_ports"
+                  ></el-button>
+                </el-tooltip>
               </el-form-item>
             </el-col>
           </el-row>
@@ -190,26 +195,159 @@
                 size="mini"
                 border
               >
-                <el-table-column label="名称" prop="name"></el-table-column>
-                <el-table-column label="协议" prop="protocol"></el-table-column>
-                <el-table-column
-                  label="容器端口"
-                  prop="containerPort"
-                ></el-table-column>
-                <el-table-column label="操作"></el-table-column>
+                <el-table-column label="名称" prop="name">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.name"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.name"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="协议" prop="protocol">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.protocol"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.protocol"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="容器端口" prop="containerPort">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.containerPort"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.containerPort"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="120px">
+                  <template slot-scope="scoped">
+                    <el-button
+                      type="primary"
+                      size="mini"
+                      :icon="
+                        scoped.row.isSet ? 'el-icon-check' : 'el-icon-edit'
+                      "
+                      @click="container_port_edit(scoped.row, scoped.row.isSet)"
+                    ></el-button>
+                    <el-button
+                      v-if="!scoped.row.isSet"
+                      type="danger"
+                      icon="el-icon-delete"
+                      size="mini"
+                      @click="
+                        container_port_del(
+                          application_form.pod.spec.containers[0].ports,
+                          scoped.$index
+                        )
+                      "
+                    ></el-button>
+                  </template>
+                </el-table-column>
               </el-table>
             </el-form-item>
           </el-row>
           <el-row>
             <el-col :span="24">
               <el-form-item label="环境变量" prop="env">
-                <el-button
-                  size="small"
-                  icon="el-icon-plus"
-                  @click="add_env"
-                ></el-button>
+                <el-tooltip
+                  class="item"
+                  effect="dark"
+                  content="添加环境变量"
+                  placement="top"
+                >
+                  <el-button
+                    size="small"
+                    icon="el-icon-plus"
+                    @click="add_container_env"
+                  ></el-button>
+                </el-tooltip>
               </el-form-item>
             </el-col>
+          </el-row>
+          <el-row v-if="application_form.pod.spec.containers[0].env.length > 0">
+            <el-form-item>
+              <el-table
+                :data="application_form.pod.spec.containers[0].env"
+                size="mini"
+                border
+              >
+                <el-table-column label="name" prop="name">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.name"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.name"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="value" prop="value">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.value"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.value"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="120px">
+                  <template slot-scope="scoped">
+                    <el-button
+                      type="primary"
+                      size="mini"
+                      :icon="
+                        scoped.row.isSet ? 'el-icon-check' : 'el-icon-edit'
+                      "
+                      @click="container_env_edit(scoped.row, scoped.row.isSet)"
+                    ></el-button>
+                    <el-button
+                      v-if="!scoped.row.isSet"
+                      type="danger"
+                      icon="el-icon-delete"
+                      size="mini"
+                      @click="
+                        container_env_del(
+                          application_form.pod.spec.containers[0].env,
+                          scoped.$index
+                        )
+                      "
+                    ></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
           </el-row>
           <el-row>
             <el-col :span="24">
@@ -225,15 +363,111 @@
           <el-row>
             <el-col :span="24">
               <el-form-item label="卷挂载" prop="volumeMounts">
-                <el-button
-                  size="small"
-                  icon="el-icon-plus"
-                  @click="add_volumeMounts"
-                ></el-button>
+                <el-tooltip
+                  class="item"
+                  effect="dark"
+                  content="挂载卷"
+                  placement="top"
+                >
+                  <el-button
+                    size="small"
+                    icon="el-icon-plus"
+                    @click="add_container_volumeMounts"
+                  ></el-button>
+                </el-tooltip>
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row
+            v-if="
+              application_form.pod.spec.containers[0].volumeMounts.length > 0
+            "
+          >
+            <el-form-item>
+              <el-table
+                :data="application_form.pod.spec.containers[0].volumeMounts"
+                size="mini"
+                border
+              >
+                <el-table-column label="name" prop="name">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.name"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.name"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="mountPath" prop="mountPath">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.mountPath"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.mountPath"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="subPath" prop="subPath">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.subPath"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.subPath"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="120px">
+                  <template slot-scope="scoped">
+                    <el-button
+                      type="primary"
+                      size="mini"
+                      :icon="
+                        scoped.row.isSet ? 'el-icon-check' : 'el-icon-edit'
+                      "
+                      @click="
+                        container_volumeMounts_edit(
+                          scoped.row,
+                          scoped.row.isSet
+                        )
+                      "
+                    ></el-button>
+                    <el-button
+                      v-if="!scoped.row.isSet"
+                      type="danger"
+                      icon="el-icon-delete"
+                      size="mini"
+                      @click="
+                        container_volumeMounts_del(
+                          application_form.pod.spec.containers[0].volumeMounts,
+                          scoped.$index
+                        )
+                      "
+                    ></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-row>
         </el-tab-pane>
+        <el-tab-pane label="Service" name="Service"></el-tab-pane>
       </el-tabs>
     </el-form>
 
@@ -321,16 +555,48 @@ export default {
     add_labels() {},
     add_annotations() {},
     select_image() {},
-    add_ports() {
+    add_container_ports() {
       this.application_form.pod.spec.containers[0].ports.push({
+        isSet: false,
         name: "",
         protocol: "TCP",
-        containerPort: 0,
+        containerPort: 80,
       });
     },
-    add_env() {},
+    container_port_edit(row, isSet) {
+      row.isSet = !isSet;
+    },
+    container_port_del(allData, index) {
+      allData.splice(index, 1);
+    },
+    add_container_env() {
+      this.application_form.pod.spec.containers[0].env.push({
+        isSet: false,
+        name: "",
+        value: "",
+      });
+    },
+    container_env_edit(row, isSet) {
+      row.isSet = !isSet;
+    },
+    container_env_del(allData, index) {
+      allData.splice(index, 1);
+    },
     add_volumes() {},
-    add_volumeMounts() {},
+    add_container_volumeMounts() {
+      this.application_form.pod.spec.containers[0].volumeMounts.push({
+        isSet: false,
+        name: "",
+        mountPath: "",
+        subPath: "",
+      });
+    },
+    container_volumeMounts_edit(row, isSet) {
+      row.isSet = !isSet;
+    },
+    container_volumeMounts_del(allData, index) {
+      allData.splice(index, 1);
+    },
   },
 };
 </script>

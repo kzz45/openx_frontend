@@ -13,7 +13,6 @@ const protoMetrics = protoRoot.k8s.io.metrics.pkg.apis.metrics;
 
 export const binaryToStr = (fileData) => {
   let dataString = "";
-  Ï;
   for (let i = 0; i < fileData.length; i++) {
     dataString += String.fromCharCode(fileData[i]);
   }
@@ -132,7 +131,6 @@ export function returnResource(
         type: "error",
         duration: 0,
       });
-      // router.replace({ name: "Index" });
       return;
     }
     switch (result.verb) {
@@ -296,4 +294,80 @@ export function getInfoInGvk(types, details, gvk) {
       return appInfo;
     }
   }
+}
+
+export function rowEdit(row, isSet, allData, saveObj) {
+  for (const item of allData) {
+    if (!isSet && item.isSet) {
+      return;
+    }
+  }
+  saveObj.value = cloneDeep(row);
+  row.isSet = !Boolean(row.isSet);
+}
+
+export function showLabelPoliy(metaData) {
+  for (const labelkey in metaData.labels) {
+    if (labelkey.startsWith("watch-policy.openx.neverdown.org")) {
+      let auto = "手动";
+      const watchPolicy = metaData.labels[labelkey];
+      if (watchPolicy === "in-place-upgrade") {
+        auto = "自动";
+      }
+      if (watchPolicy === "rolling-upgrade") {
+        auto = "滚动";
+      }
+      return auto;
+    }
+  }
+}
+
+const metadata = {
+  name: "",
+  namespace: "",
+  annotations: {},
+  labels: {},
+  creationTimestamp: {
+    seconds: 0,
+  },
+};
+
+const openx = {
+  metadata,
+  spec: {
+    applications: [],
+  },
+};
+
+const objectInitInfo = {
+  "openx.neverdown.org-v1-Openx": openx,
+};
+
+export function initObject(gvk) {
+  return objectInitInfo[gvk];
+}
+
+export const encodeify = (gvk, item) => {
+  const protoFetch = {};
+  if (gvk.group.startsWith("openx")) {
+    protoFetch = protoOpenx[gvk.version];
+  } else if (gvk.group.startsWith("rbac")) {
+    protoFetch = protoRbac[gvk.version];
+  } else if (gvk.group === "jingx") {
+    protoFetch = protoJingx[gvk.version];
+  } else {
+    protoFetch = protoApi[gvk.group][gvk.version];
+  }
+  const message = protoFetch[gvk.kind].create(item);
+  const fetchEncode = protoFetch[gvk.kind].encode(message).finish();
+  return fetchEncode;
+};
+
+export function cancel_delete() {
+  Notification({
+    title: "不了不了",
+    message: "你考虑的很全面",
+    type: "warning",
+    duration: 3000,
+  });
 }
