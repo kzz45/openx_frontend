@@ -467,7 +467,157 @@
             </el-form-item>
           </el-row>
         </el-tab-pane>
-        <el-tab-pane label="Service" name="Service"></el-tab-pane>
+        <el-tab-pane label="Service" name="Service">
+          <el-row>
+            <el-col :span="12">
+              <el-form-item label="类型" prop="type">
+                <el-select
+                  v-model="application_form.service.spec.type"
+                  placeholder=""
+                >
+                  <el-option label="ClusterIP" value="ClusterIP"></el-option>
+                  <el-option label="NodePort" value="NodePort"></el-option>
+                  <el-option
+                    label="LoadBalancer"
+                    value="LoadBalancer"
+                  ></el-option>
+                  <el-option
+                    label="ExternalName"
+                    value="ExternalName"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="选择器" prop="selector">
+                <el-button
+                  size="small"
+                  icon="el-icon-plus"
+                  @click="add_selector"
+                ></el-button>
+                <el-tag
+                  v-for="tag in showKV(application_form.service.spec.selector)"
+                  :key="tag.label"
+                  closable
+                  @close="close_service_selector(tag.label)"
+                  >{{ tag.label }}:{{ tag.value }}</el-tag
+                >
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="24">
+              <el-form-item label="端口" prop="ports">
+                <el-tooltip
+                  class="item"
+                  effect="dark"
+                  content="添加端口"
+                  placement="top"
+                >
+                  <el-button
+                    size="small"
+                    icon="el-icon-plus"
+                    @click="add_service_ports"
+                  ></el-button>
+                </el-tooltip>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row v-if="application_form.service.spec.ports.length > 0">
+            <el-form-item>
+              <el-table
+                :data="application_form.service.spec.ports"
+                size="mini"
+                border
+              >
+                <el-table-column label="名称" prop="name">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.name"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.name"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="协议" prop="protocol">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.protocol"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.protocol"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="端口" prop="port">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.port"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.port"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="目标端口" prop="targetPort">
+                  <template slot-scope="scoped">
+                    <el-input
+                      v-if="scoped.row.isSet"
+                      v-model="scoped.row.targetPort.intVal"
+                      size="mini"
+                    ></el-input>
+                    <el-input
+                      v-else
+                      v-model="scoped.row.targetPort.intVal"
+                      size="mini"
+                      disabled
+                    ></el-input>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="120px">
+                  <template slot-scope="scoped">
+                    <el-button
+                      type="primary"
+                      size="mini"
+                      :icon="
+                        scoped.row.isSet ? 'el-icon-check' : 'el-icon-edit'
+                      "
+                      @click="service_port_edit(scoped.row, scoped.row.isSet)"
+                    ></el-button>
+                    <el-button
+                      v-if="!scoped.row.isSet"
+                      type="danger"
+                      icon="el-icon-delete"
+                      size="mini"
+                      @click="
+                        service_port_del(
+                          application_form.service.spec.ports,
+                          scoped.$index
+                        )
+                      "
+                    ></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-row>
+        </el-tab-pane>
       </el-tabs>
     </el-form>
 
@@ -522,6 +672,14 @@ export default {
                 },
               ],
               volumns: [],
+            },
+          },
+          service: {
+            spec: {
+              selector: {},
+              type: "",
+              clusterIP: "",
+              ports: [],
             },
           },
         };
@@ -595,6 +753,35 @@ export default {
       row.isSet = !isSet;
     },
     container_volumeMounts_del(allData, index) {
+      allData.splice(index, 1);
+    },
+    add_selector() {},
+    showKV(ans) {
+      let tags = [];
+      for (let key in ans) {
+        tags.push({
+          label: key,
+          value: ans[key],
+        });
+      }
+      return tags;
+    },
+    close_service_selector() {},
+    add_service_ports() {
+      this.application_form.service.spec.ports.push({
+        isSet: false,
+        name: "",
+        port: 80,
+        protocol: "TCP",
+        targetPort: {
+          intVal: 80,
+        },
+      });
+    },
+    service_port_edit(row, isSet) {
+      row.isSet = !isSet;
+    },
+    service_port_del(allData, index) {
       allData.splice(index, 1);
     },
   },

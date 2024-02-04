@@ -427,6 +427,14 @@ export default {
               volumes: [],
             },
           },
+          service: {
+            spec: {
+              selector: {},
+              type: "",
+              clusterIP: "",
+              ports: [],
+            },
+          },
         };
         if (
           this.openx_obj.spec.applications.findIndex(

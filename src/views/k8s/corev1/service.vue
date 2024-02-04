@@ -59,23 +59,11 @@
         <el-table-column label="操作" width="180px;">
           <template slot-scope="scoped">
             <el-button
-              type="warning"
+              type="primary"
               icon="el-icon-edit"
               size="small"
               @click="update_service(scoped.row)"
             ></el-button>
-            <el-tooltip
-              class="item"
-              effect="dark"
-              content="导出"
-              placement="top"
-            >
-              <el-button
-                type="primary"
-                icon="el-icon-top"
-                size="small"
-              ></el-button>
-            </el-tooltip>
             <el-popconfirm
               title="确定删除吗？"
               confirm-button-text="确定"
@@ -91,6 +79,39 @@
                 size="small"
               ></el-button>
             </el-popconfirm>
+            <el-tooltip
+              class="item"
+              effect="dark"
+              content="更多"
+              placement="top"
+              style="margin-left: 10px"
+            >
+              <el-dropdown
+                trigger="click"
+                @command="
+                  (command) => {
+                    service_command(command, scoped.row);
+                  }
+                "
+              >
+                <el-button type="warning" icon="el-icon-menu" size="small">
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item
+                    command="export"
+                    icon="el-icon-top"
+                    style="color: #409eff"
+                    >导出</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    command="export_yaml"
+                    icon="el-icon-document"
+                    style="color: #67c23a"
+                    >导出YAML</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </el-dropdown>
+            </el-tooltip>
           </template>
         </el-table-column>
       </el-table>
@@ -364,11 +385,16 @@ import store from "@/store";
 import { cloneDeep } from "lodash";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
+import json2yaml from "json2yaml";
+import { saveAs } from "file-saver";
+import { Notification } from "element-ui";
 import {
   initSocketData,
   updateSocketData,
   sendSocketMessage,
   returnResponse,
+  encodeify,
+  binaryToStr,
 } from "@/api/k8s";
 
 const MetadataObj = {
@@ -376,6 +402,24 @@ const MetadataObj = {
   namespace: localStorage.getItem("k8s_namespace") || "",
   labels: {},
   annotations: {},
+};
+
+const ServiceObj = {
+  metadata: {
+    name: "",
+    namespace: localStorage.getItem("k8s_namespace"),
+    annotations: {},
+    labels: {},
+    creationTimestamp: {
+      seconds: 0,
+    },
+  },
+  spec: {
+    selector: {},
+    type: "",
+    clusterIP: "",
+    ports: [],
+  },
 };
 
 export default {
@@ -581,6 +625,66 @@ export default {
       this.service_obj.spec.ports = Object.assign([], changePort);
     },
     delete_service(row) {},
+    service_command(command, row) {
+      if (command === "export") {
+        this.export_item(row);
+      } else if (command === "export_yaml") {
+        this.export_yaml(row);
+      }
+    },
+    export_item(item) {
+      const cloneItem = cloneDeep(item);
+      let initItem = ServiceObj;
+
+      if (initItem.metadata) {
+        for (let metaIndex in initItem.metadata) {
+          initItem.metadata[metaIndex] = cloneDeep(
+            cloneItem.metadata[metaIndex]
+          );
+        }
+      }
+      if (initItem.spec) {
+        for (let metaIndex in initItem.spec) {
+          initItem.spec[metaIndex] = cloneDeep(cloneItem.spec[metaIndex]);
+        }
+      } else {
+        initItem = cloneItem;
+      }
+      delete initItem.metadata.creationTimestamp;
+
+      let gvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "Service",
+      };
+      const encodeItem = encodeify(gvkObj, initItem);
+      localStorage.setItem("core-v1-Service", binaryToStr(encodeItem));
+      Notification({
+        title: "导出成功",
+        message: "success",
+        type: "success",
+        duration: 3000,
+      });
+    },
+    export_yaml(item) {
+      const nsGvk = "core-v1-Service";
+      const gvkArr = nsGvk.split("-");
+      const cloneItem = cloneDeep(item);
+      let fileName = item.metadata?.name || "";
+      let avk = {
+        apiVersion: `${gvkArr[0]}/${gvkArr[1]}`,
+        kind: `${gvkArr[2]}`,
+      };
+      const yamlData = json2yaml.stringify(Object.assign(avk, cloneItem));
+      const str = new Blob([yamlData], { type: "text/plain;charset=utf-8" });
+      saveAs(str, nsGvk + "-" + fileName + ".yaml");
+      Notification({
+        title: "导出成功",
+        message: "success",
+        type: "success",
+        duration: 3000,
+      });
+    },
     submit_service() {
       if (this.dialogStatus === "create_service") {
         // console.log(this.service_obj, "======");
