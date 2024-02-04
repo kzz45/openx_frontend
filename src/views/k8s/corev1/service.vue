@@ -391,11 +391,15 @@ import { Notification } from "element-ui";
 import {
   initSocketData,
   updateSocketData,
+  deleteSocketData,
   sendSocketMessage,
   returnResponse,
+  getGvkGroup,
   encodeify,
   binaryToStr,
 } from "@/api/k8s";
+
+const Servicegvk = "core-v1-Service";
 
 const MetadataObj = {
   name: "",
@@ -423,7 +427,7 @@ const ServiceObj = {
 };
 
 export default {
-  name: "ServiceIngress",
+  name: "Service",
   filters: {
     parseTime(time, cFormat) {
       return parseTime(time, cFormat);
@@ -624,7 +628,13 @@ export default {
       }
       this.service_obj.spec.ports = Object.assign([], changePort);
     },
-    delete_service(row) {},
+    delete_service(row) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkGroup = getGvkGroup(Servicegvk);
+      const params = deleteSocketData(gvkGroup, row);
+      const delete_data = initSocketData(ns, Servicegvk, "delete", params);
+      sendSocketMessage(delete_data, store);
+    },
     service_command(command, row) {
       if (command === "export") {
         this.export_item(row);

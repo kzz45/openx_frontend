@@ -169,36 +169,13 @@
               </el-col>
             </el-row>
           </el-tab-pane>
-          <el-tab-pane label="二进制数据" name="binarydata"></el-tab-pane>
+          <!-- <el-tab-pane label="二进制数据" name="binarydata"></el-tab-pane> -->
         </el-tabs>
         <span slot="footer" class="dialog-footer">
           <el-button size="small" @click="configmap_dialog = false"
             >取 消</el-button
           >
           <el-button type="primary" size="small" @click="submit_configmap"
-            >确 定</el-button
-          >
-        </span>
-      </el-dialog>
-      <!-- -------------------------------------------------- -->
-      <el-dialog
-        title="Secret"
-        :visible.sync="secret_dialog"
-        :show-close="false"
-        top="5%"
-        width="60%"
-      >
-        <el-tabs tab-position="top">
-          <el-tab-pane label="基本信息">
-            <MetaData></MetaData>
-          </el-tab-pane>
-          <el-tab-pane label="配置信息"> </el-tab-pane>
-        </el-tabs>
-        <span slot="footer" class="dialog-footer">
-          <el-button size="small" @click="secret_dialog = false"
-            >取 消</el-button
-          >
-          <el-button type="primary" size="small" @click="submit_secret"
             >确 定</el-button
           >
         </span>
@@ -212,19 +189,17 @@ import store from "@/store";
 import { cloneDeep } from "lodash";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
+import { Notification } from "element-ui";
 import json2yaml from "json2yaml";
 import { saveAs } from "file-saver";
 import {
   initSocketData,
   updateSocketData,
   sendSocketMessage,
+  returnResponse,
   encodeify,
   binaryToStr,
 } from "@/api/k8s";
-import protoRoot from "@/proto/proto";
-const protoApi = protoRoot.k8s.io.api;
-const protoRequest =
-  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 
 import MetaData from "../components/metadata.vue";
 import yamlViewer from "../components/yamlViewer.vue";
@@ -243,23 +218,8 @@ const ConfigMapObj = {
   binarydata: {},
 };
 
-const SecretObj = {
-  metadata: {
-    name: "",
-    namespace: "",
-    annotations: {},
-    labels: {},
-    creationTimestamp: {
-      seconds: 0,
-    },
-  },
-  data: {},
-  type: "",
-  stringData: {},
-};
-
 export default {
-  name: "ConfigMapAndSecret",
+  name: "ConfigMap",
   filters: {
     parseTime(time, cFormat) {
       return parseTime(time, cFormat);
@@ -270,7 +230,7 @@ export default {
     yamlViewer,
   },
   computed: {
-    ...mapGetters(["message", "namespace"]),
+    ...mapGetters(["message", "namespace", "isConnected"]),
     page_configmap_list: function () {
       return this.configmap_list.slice(
         (this.currentPage - 1) * 10,
@@ -281,8 +241,8 @@ export default {
   data() {
     return {
       textMap: {
-        create_configmap: "新增ConfigMap",
-        update_configmap: "编辑ConfigMap",
+        create_configmap: "新增",
+        update_configmap: "编辑",
       },
       dialogStatus: "",
       currentPage: 1,
@@ -312,30 +272,39 @@ export default {
     };
   },
   created() {
-    let ns = localStorage.getItem("k8s_namespace");
-    this.get_configmap_list(ns);
+    this.get_configmap_list();
   },
   mounted() {},
   watch: {
-    message: function () {
-      this.socket_onmessage(this.message);
+    isConnected: function (newVal) {
+      if (newVal) {
+        this.get_configmap_list();
+      }
+    },
+    message: function (newMsg) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "ConfigMap",
+      };
+      const result_list = returnResponse(
+        newMsg,
+        ns,
+        gvkObj,
+        this.updateWatch,
+        this.get_configmap_list
+      );
+      if (result_list) {
+        this.configmap_list = result_list;
+      }
     },
     namespace: function () {
-      this.get_configmap_list(this.namespace);
+      this.get_configmap_list();
     },
   },
   methods: {
-    tab_click(tab) {
-      if (tab.name === "ConfigMap") {
-        let ns = localStorage.getItem("k8s_namespace");
-        this.get_configmap_list(ns);
-      } else if (tab.name === "Secret") {
-        let ns = localStorage.getItem("k8s_namespace");
-        this.get_secret_list(ns);
-      }
-    },
     configmap_command(command, row) {
-      // console.log(command, row);
       if (command === "export") {
         this.export_item(row);
       } else if (command === "export_yaml") {
@@ -369,9 +338,11 @@ export default {
       };
       const encodeItem = encodeify(gvkObj, initItem);
       localStorage.setItem("core-v1-ConfigMap", binaryToStr(encodeItem));
-      this.$message({
+      Notification({
+        title: "导出成功",
+        message: "success",
         type: "success",
-        message: "导出成功",
+        duration: 3000,
       });
     },
     export_yaml(item) {
@@ -386,9 +357,11 @@ export default {
       const yamlData = json2yaml.stringify(Object.assign(avk, cloneItem));
       const str = new Blob([yamlData], { type: "text/plain;charset=utf-8" });
       saveAs(str, nsGvk + "-" + fileName + "(whole).yaml");
-      this.$message({
+      Notification({
+        title: "导出成功",
+        message: "success",
         type: "success",
-        message: "导出成功",
+        duration: 3000,
       });
     },
     configmap_input_confirm() {
@@ -434,7 +407,8 @@ export default {
       this.configmap_data_active_tab = Object.keys(this.configmap_obj.data)[0];
       // this.configmap_data_list = tabs.filter((item) => item.name !== tab);
     },
-    get_configmap_list(ns) {
+    get_configmap_list() {
+      let ns = localStorage.getItem("k8s_namespace");
       const senddata = initSocketData(ns, "core-v1-ConfigMap", "list");
       sendSocketMessage(senddata, store);
     },
@@ -469,9 +443,9 @@ export default {
         };
         const item = cloneDeep(this.configmap_obj);
         const param = updateSocketData(gvkObj, item);
-        const namespace = localStorage.getItem("k8s_namespace");
+        const ns = localStorage.getItem("k8s_namespace");
         const update_data = initSocketData(
-          namespace,
+          ns,
           "core-v1-ConfigMap",
           "update",
           param
@@ -480,80 +454,32 @@ export default {
         this.configmap_dialog = false;
       }
     },
-    // --------------------------------------------------
-    get_secret_list(ns) {
-      const senddata = initSocketData(ns, "core-v1-Secret", "list");
-      sendSocketMessage(senddata, store);
+    updateWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.configmap_list.unshift(updateRaw);
+      } else if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.configmap_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.configmap_list[modIndex] = updateRaw;
+        }
+      } else if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.configmap_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.configmap_list.splice(modIndex, 1);
+        }
+      }
     },
-    creaet_secret() {
-      this.secret_dialog = true;
-    },
-    update_secret() {},
-    delete_secret() {},
-    submit_secret() {},
     cancel_delete() {
       this.$message({
         type: "warning",
         message: "你考虑的很全面",
       });
-    },
-    // --------------------------------------------------
-    socket_onmessage(msg) {
-      let ns = localStorage.getItem("k8s_namespace");
-      const result = protoRequest.Response.decode(msg);
-      if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
-          type: "error",
-          message: err_msg,
-        });
-      }
-
-      if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "ConfigMap"
-      ) {
-        const configmap_list = protoApi["core"]["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        console.log(configmap_list);
-        configmap_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
-          );
-        });
-        this.configmap_list = [];
-        for (let cm of configmap_list) {
-          this.configmap_list.push(cm);
-        }
-      } else if (
-        result.verb === "update" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "ConfigMap"
-      ) {
-        //
-        this.$message({
-          type: "success",
-          message: "修改成功",
-        });
-
-        this.get_configmap_list(this.namespace);
-      } else if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "Secret"
-      ) {
-        const secret_list = protoApi["core"]["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        console.log(secret_list);
-        this.secret_list = [];
-        for (let cm of secret_list) {
-          this.secret_list.push(cm);
-        }
-      }
     },
   },
 };
