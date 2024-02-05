@@ -118,19 +118,11 @@ export const constantRoutes = [
         name: "ConfigMap",
         component: () => import("@/views/k8s/corev1/config"),
         meta: {
-          title: "配置项",
+          title: "配置字典",
           icon: "cm",
         },
       },
-      {
-        path: "node",
-        name: "Node",
-        component: () => import("@/views/k8s/corev1/node"),
-        meta: {
-          title: "节点列表",
-          icon: "node",
-        },
-      },
+
       {
         path: "secret",
         name: "Secret",
@@ -138,6 +130,16 @@ export const constantRoutes = [
         meta: {
           title: "保密字典",
           icon: "secret",
+        },
+      },
+
+      {
+        path: "serviceaccount",
+        name: "ServiceAccount",
+        component: () => import("@/views/k8s/corev1/serviceaccount"),
+        meta: {
+          title: "服务账户",
+          icon: "serviceaccount",
         },
       },
       {
@@ -150,12 +152,12 @@ export const constantRoutes = [
         },
       },
       {
-        path: "serviceaccount",
-        name: "ServiceAccount",
-        component: () => import("@/views/k8s/corev1/serviceaccount"),
+        path: "node",
+        name: "Node",
+        component: () => import("@/views/k8s/corev1/node"),
         meta: {
-          title: "服务账户",
-          icon: "serviceaccount",
+          title: "节点列表",
+          icon: "node",
         },
       },
       {

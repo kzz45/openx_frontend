@@ -128,7 +128,6 @@
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="service_dialog"
-        top="5%"
         width="60%"
       >
         <el-form
@@ -437,6 +436,11 @@ export default {
   computed: {
     ...mapGetters(["message", "namespace", "isConnected"]),
     page_service_list: function () {
+      this.service_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
       return this.service_list.slice(
         (this.currentPage - 1) * 10,
         this.currentPage * 10

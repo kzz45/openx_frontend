@@ -178,18 +178,8 @@ import {
   getGvkGroup,
   returnResponse,
 } from "@/api/k8s";
-// import protoRoot from "@/proto/proto";
-// const protoApi = protoRoot.k8s.io.api;
-// const protoRequest =
-//   protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 
 const Podgvk = "core-v1-Pod";
-
-function get_pod_list() {
-  const ns = localStorage.getItem("k8s_namespace");
-  const senddata = initSocketData(ns, Podgvk, "list");
-  sendSocketMessage(senddata, store);
-}
 
 export default {
   name: "PodList",
@@ -281,7 +271,6 @@ export default {
         const modIndex = this.pod_list.findIndex((ser) => {
           return ser.metadata.name === modName;
         });
-        console.log("updateWatch", types, updateRaw, modIndex);
         if (modIndex >= 0) {
           this.pod_list[modIndex] = updateRaw;
         }

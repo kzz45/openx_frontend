@@ -65,19 +65,25 @@
       </el-pagination>
 
       <!-- -------------------------------------------------- -->
-      <el-dialog
-        title="Secret"
-        :visible.sync="secret_dialog"
-        :show-close="false"
-        top="5%"
-        width="60%"
-      >
-        <el-tabs tab-position="top">
-          <el-tab-pane label="基本信息">
-            <!-- <MetaData></MetaData> -->
-          </el-tab-pane>
-          <el-tab-pane label="配置信息"> </el-tab-pane>
-        </el-tabs>
+      <el-dialog title="Secret" :visible.sync="secret_dialog" width="60%">
+        <el-form
+          ref="secret_obj_refs"
+          :model="secret_obj"
+          size="small"
+          label-width="100px"
+        >
+          <el-tabs v-model="dialog_tabs">
+            <el-tab-pane label="元数据" name="metadata">
+              <MetaDataTpl
+                ref="metadatatpl"
+                :metadata="secret_obj.metadata"
+              ></MetaDataTpl>
+            </el-tab-pane>
+            <el-tab-pane label="配置信息" name="spec">
+              
+            </el-tab-pane>
+          </el-tabs>
+        </el-form>
         <span slot="footer" class="dialog-footer">
           <el-button size="small" @click="secret_dialog = false"
             >取 消</el-button
@@ -107,8 +113,8 @@ import {
   binaryToStr,
 } from "@/api/k8s";
 
-import MetaData from "../components/metadata.vue";
-import yamlViewer from "../components/yamlViewer.vue";
+import MetaDataTpl from "@/components/k8s/metadata.vue";
+import yamlViewer from "../components/yamlviewer.vue";
 
 const SecretObj = {
   metadata: {
@@ -120,8 +126,8 @@ const SecretObj = {
       seconds: 0,
     },
   },
-  data: {},
   type: "",
+  data: {},
   stringData: {},
 };
 
@@ -133,7 +139,7 @@ export default {
     },
   },
   components: {
-    MetaData,
+    MetaDataTpl,
     yamlViewer,
   },
   computed: {
@@ -153,6 +159,18 @@ export default {
       },
       dialogStatus: "",
       currentPage: 1,
+      dialog_tabs: "metadata",
+      secret_obj: {
+        metadata: {
+          name: "",
+          namespace: localStorage.getItem("k8s_namespace"),
+          annotations: {},
+          labels: {},
+        },
+        type: "",
+        data: {},
+        stringData: {},
+      },
       secret_list: [],
       secret_dialog: false,
     };

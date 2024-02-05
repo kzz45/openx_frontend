@@ -2,7 +2,11 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-button type="primary" size="small" icon="el-icon-circle-plus"
+      <el-button
+        type="primary"
+        size="small"
+        icon="el-icon-circle-plus"
+        @click="create_namespace"
         >新增</el-button
       >
       <el-table
@@ -50,14 +54,8 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120px;">
+        <el-table-column label="操作" width="80px;">
           <template slot-scope="scoped">
-            <el-button
-              type="primary"
-              icon="el-icon-edit"
-              size="small"
-              @click="update_namespace(scoped.row)"
-            ></el-button>
             <el-popconfirm
               title="确定删除吗？"
               confirm-button-text="确定"
@@ -85,19 +83,55 @@
         style="text-align: left; margin-top: 20px"
       >
       </el-pagination>
+
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="namespace_dialog"
+        width="60%"
+      >
+        <el-form
+          ref="namespace_obj_refs"
+          :model="namespace_obj"
+          size="small"
+          label-width="100px"
+        >
+          <MetaDataTpl
+            ref="metadatatpl"
+            :metadata="namespace_obj.metadata"
+          ></MetaDataTpl>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="namespace_dialog = false"
+            >取 消</el-button
+          >
+          <el-button type="primary" size="small" @click="submit_namespace"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
     </el-card>
   </div>
 </template>
 
 <script>
 import store from "@/store";
+import { cloneDeep } from "lodash";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
-import { initSocketData, sendSocketMessage } from "@/api/k8s";
-import protoRoot from "@/proto/proto";
-const protoApi = protoRoot.k8s.io.api;
-const protoRequest =
-  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
+import { Notification } from "element-ui";
+import {
+  initSocketData,
+  updateSocketData,
+  deleteSocketData,
+  sendSocketMessage,
+  returnResponse,
+  getGvkGroup,
+  encodeify,
+  binaryToStr,
+} from "@/api/k8s";
+import MetaDataTpl from "@/components/k8s/metadata.vue";
+
+const Namespacegvk = "core-v1-Namespace";
 
 export default {
   name: "Namespace",
@@ -106,15 +140,40 @@ export default {
       return parseTime(time, cFormat);
     },
   },
+  components: {
+    MetaDataTpl,
+  },
   data() {
     return {
+      textMap: {
+        create_namespace: "新增",
+        update_namespace: "编辑",
+      },
+      dialogStatus: "",
       currentPage: 1,
       namespace_list: [],
+      namespace_dialog: false,
+      namespace_obj: {
+        metadata: {
+          name: "",
+          namespace: localStorage.getItem("k8s_namespace"),
+          annotations: {},
+          labels: {},
+        },
+        spec: {
+          finalizers: [],
+        },
+      },
     };
   },
   computed: {
-    ...mapGetters(["message"]),
+    ...mapGetters(["message", "isConnected"]),
     page_namespace_list: function () {
+      this.namespace_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
       return this.namespace_list.slice(
         (this.currentPage - 1) * 10,
         this.currentPage * 10
@@ -123,49 +182,84 @@ export default {
   },
 
   watch: {
-    message: function () {
-      this.socket_onmessage(this.message);
+    isConnected: function (newVal) {
+      if (newVal) {
+        this.get_namespace_list();
+      }
+    },
+    message: function (newMsg) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "Namespace",
+      };
+      const result_list = returnResponse(
+        newMsg,
+        ns,
+        gvkObj,
+        this.updateWatch,
+        this.get_namespace_list
+      );
+      if (result_list) {
+        this.namespace_list = result_list;
+      }
     },
   },
   mounted() {
     this.get_namespace_list();
   },
   methods: {
-    update_namespace() {},
-    delete_namespace() {},
+    create_namespace() {
+      this.namespace_dialog = true;
+      this.dialogStatus = "create_namespace";
+    },
+    delete_namespace(row) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkGroup = getGvkGroup(Namespacegvk);
+      const params = deleteSocketData(gvkGroup, row);
+      const delete_data = initSocketData(ns, Namespacegvk, "delete", params);
+      sendSocketMessage(delete_data, store);
+    },
+    submit_namespace() {
+      if (this.dialogStatus === "create_namespace") {
+        // console.log(this.namespace_obj, "===========");
+        const gvkObj = {
+          group: "core",
+          version: "v1",
+          kind: "Namespace",
+        };
+        const item = cloneDeep(this.namespace_obj);
+        const param = updateSocketData(gvkObj, item);
+        const ns = localStorage.getItem("k8s_namespace");
+        const create_data = initSocketData(ns, Namespacegvk, "create", param);
+        sendSocketMessage(create_data, store);
+        this.namespace_dialog = false;
+      }
+    },
     get_namespace_list() {
       let ns = localStorage.getItem("k8s_namespace");
-      const senddata = initSocketData(ns, "core-v1-Namespace", "list");
+      const senddata = initSocketData(ns, Namespacegvk, "list");
       sendSocketMessage(senddata, store);
     },
-    socket_onmessage(msg) {
-      const result = protoRequest.Response.decode(msg);
-      if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
-          type: "error",
-          message: err_msg,
+    updateWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.namespace_list.unshift(updateRaw);
+      } else if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.namespace_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-      }
-
-      if (
-        result.verb === "list" &&
-        result.groupVersionKind.kind === "Namespace"
-      ) {
-        console.log("ns:", result);
-        const namespace_list = protoApi["core"]["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        // console.log(namespace_list);
-        namespace_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
-          );
+        if (modIndex >= 0) {
+          this.namespace_list[modIndex] = updateRaw;
+        }
+      } else if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.namespace_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-        this.namespace_list = [];
-        for (let ns of namespace_list) {
-          this.namespace_list.push(ns);
+        if (modIndex >= 0) {
+          this.namespace_list.splice(modIndex, 1);
         }
       }
     },

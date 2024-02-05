@@ -88,14 +88,14 @@ import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
 import {
   initSocketData,
+  updateSocketData,
+  deleteSocketData,
   sendSocketMessage,
   returnResponse,
-  deleteSocketData,
+  getGvkGroup,
+  encodeify,
+  binaryToStr,
 } from "@/api/k8s";
-import protoRoot from "@/proto/proto";
-const protoApi = protoRoot.k8s.io.api;
-const protoRequest =
-  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
 
 export default {
   name: "Event",
@@ -111,7 +111,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["message", "namespace"]),
+    ...mapGetters(["message", "namespace", "isConnected"]),
     page_event_list: function () {
       return this.event_list.slice(
         (this.currentPage - 1) * 10,
@@ -120,16 +120,35 @@ export default {
     },
   },
   watch: {
-    message: function () {
-      this.socket_onmessage(this.message);
+    isConnected: function (newVal) {
+      if (newVal) {
+        this.get_event_list();
+      }
+    },
+    message: function (newMsg) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "Event",
+      };
+      const result_list = returnResponse(
+        newMsg,
+        ns,
+        gvkObj,
+        this.updateWatch,
+        this.get_event_list
+      );
+      if (result_list) {
+        this.event_list = result_list;
+      }
     },
     namespace: function () {
-      this.get_event_list(this.namespace);
+      this.get_event_list();
     },
   },
   created() {
-    let ns = localStorage.getItem("k8s_namespace");
-    this.get_event_list(ns);
+    this.get_event_list();
   },
   methods: {
     TableRowStyle({ row, rowIndex }) {
@@ -139,7 +158,8 @@ export default {
         return rowBackground;
       }
     },
-    get_event_list(ns) {
+    get_event_list() {
+      const ns = localStorage.getItem("k8s_namespace");
       const senddata = initSocketData(ns, "core-v1-Event", "list");
       sendSocketMessage(senddata, store);
     },
@@ -160,35 +180,25 @@ export default {
       );
       sendSocketMessage(senddata, store);
     },
-    socket_onmessage(msg) {
-      let ns = localStorage.getItem("k8s_namespace");
-      const result = protoRequest.Response.decode(msg);
-      if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
-          type: "error",
-          message: err_msg,
+    updateWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.event_list.unshift(updateRaw);
+      } else if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.event_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-      }
-
-      if (result.verb === "list" && result.namespace === ns) {
-        const event_list = protoApi["core"]["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        console.log(event_list);
-        event_list.sort((itemA, itemB) => {
-          return itemB.firstTimestamp.seconds - itemA.firstTimestamp.seconds;
-        });
-        this.event_list = [];
-        for (let event of event_list) {
-          this.event_list.push(event);
+        if (modIndex >= 0) {
+          this.event_list[modIndex] = updateRaw;
         }
-      } else if (result.verb === "delete" && result.namespace === ns) {
-        this.$message({
-          type: "success",
-          message: "删除成功",
+      } else if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.event_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-        this.get_event_list(ns);
+        if (modIndex >= 0) {
+          this.event_list.splice(modIndex, 1);
+        }
       }
     },
     cancel_delete() {

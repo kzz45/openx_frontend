@@ -115,62 +115,64 @@
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="configmap_dialog"
-        :show-close="false"
-        top="5%"
         width="60%"
       >
-        <el-tabs tab-position="top" v-model="configmap_active_tab">
-          <el-tab-pane label="基本信息" name="metadata">
-            <MetaData :metadata_form="configmap_obj.metadata"></MetaData>
-          </el-tab-pane>
-          <el-tab-pane label="配置数据" name="data">
-            <el-row>
-              <el-col :span="12">
-                <el-input
-                  class="input-new-tag"
-                  v-if="configmap_input_visible"
-                  v-model="configmap_input_value"
-                  ref="configmap_tag_input"
-                  size="small"
-                  @keyup.enter.native="configmap_input_confirm"
-                  @blur="configmap_input_confirm"
-                >
-                </el-input>
-                <el-button
-                  v-else
-                  class="button-new-tag"
-                  size="small"
-                  @click="configmap_show_input"
-                  >+ New Tag</el-button
-                >
-              </el-col>
-            </el-row>
-            <el-row style="margin-top: 10px">
-              <el-col>
-                <el-tabs
-                  v-model="configmap_data_active_tab"
-                  tab-position="left"
-                  closable
-                  @tab-remove="configmap_remove_tab"
-                >
-                  <el-tab-pane
-                    v-for="(value, key) in configmap_obj.data"
-                    :label="key"
-                    :name="key"
-                    :key="key"
+        <el-form
+          ref="configmap_obj_refs"
+          :model="configmap_obj"
+          size="small"
+          label-width="100px"
+        >
+          <el-tabs v-model="configmap_active_tab">
+            <el-tab-pane label="元数据" name="metadata">
+              <MetaDataTpl :metadata="configmap_obj.metadata"></MetaDataTpl>
+            </el-tab-pane>
+            <el-tab-pane label="配置数据" name="data">
+              <el-row>
+                <el-col :span="12">
+                  <el-input
+                    ref="configmap_tag_input"
+                    v-if="configmap_input_visible"
+                    v-model="configmap_input_value"
+                    size="small"
+                    class="input-new-tag"
+                    @keyup.enter.native="configmap_input_confirm"
+                    @blur="configmap_input_confirm"
                   >
-                    <!-- <el-input type="textarea" :model="value"></el-input> -->
-                    <yamlViewer
-                      :value="value"
-                      @changed="onCmCodeChange"
-                    ></yamlViewer>
-                  </el-tab-pane>
-                </el-tabs>
-              </el-col>
-            </el-row>
-          </el-tab-pane>
-          <!-- <el-tab-pane label="二进制数据" name="binarydata"></el-tab-pane> -->
-        </el-tabs>
+                  </el-input>
+                  <el-button
+                    v-else
+                    class="button-new-tag"
+                    size="small"
+                    @click="configmap_show_input"
+                    >+ New Tag</el-button
+                  >
+                </el-col>
+              </el-row>
+              <el-row style="margin-top: 10px">
+                <el-col>
+                  <el-tabs
+                    v-model="configmap_data_active_tab"
+                    closable
+                    @tab-remove="configmap_remove_tab"
+                  >
+                    <el-tab-pane
+                      v-for="(value, key) in configmap_obj.data"
+                      :label="key"
+                      :name="key"
+                      :key="key"
+                    >
+                      <YamlViewerTpl
+                        :value="value"
+                        @changed="onCmCodeChange"
+                      ></YamlViewerTpl>
+                    </el-tab-pane>
+                  </el-tabs>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
+          </el-tabs>
+        </el-form>
         <span slot="footer" class="dialog-footer">
           <el-button size="small" @click="configmap_dialog = false"
             >取 消</el-button
@@ -195,14 +197,16 @@ import { saveAs } from "file-saver";
 import {
   initSocketData,
   updateSocketData,
+  deleteSocketData,
   sendSocketMessage,
   returnResponse,
+  getGvkGroup,
   encodeify,
   binaryToStr,
 } from "@/api/k8s";
 
-import MetaData from "../components/metadata.vue";
-import yamlViewer from "../components/yamlViewer.vue";
+import MetaDataTpl from "@/components/k8s/metadata.vue";
+import YamlViewerTpl from "../components/yamlviewer.vue";
 
 const ConfigMapObj = {
   metadata: {
@@ -218,6 +222,8 @@ const ConfigMapObj = {
   binarydata: {},
 };
 
+const ConfigMapgvk = "core-v1-ConfigMap";
+
 export default {
   name: "ConfigMap",
   filters: {
@@ -226,12 +232,17 @@ export default {
     },
   },
   components: {
-    MetaData,
-    yamlViewer,
+    MetaDataTpl,
+    YamlViewerTpl,
   },
   computed: {
     ...mapGetters(["message", "namespace", "isConnected"]),
     page_configmap_list: function () {
+      this.configmap_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
       return this.configmap_list.slice(
         (this.currentPage - 1) * 10,
         this.currentPage * 10
@@ -250,12 +261,9 @@ export default {
       configmap_obj: {
         metadata: {
           name: "",
-          namespace: "",
+          namespace: localStorage.getItem("k8s_namespace"),
           annotations: {},
           labels: {},
-          creationTimestamp: {
-            seconds: 0,
-          },
         },
         data: {},
         binarydata: {},
@@ -267,14 +275,14 @@ export default {
       configmap_data_list: [],
       configmap_list: [],
       configmap_dialog: false,
-      secret_list: [],
-      secret_dialog: false,
     };
   },
   created() {
     this.get_configmap_list();
   },
-  mounted() {},
+  mounted() {
+    this.get_configmap_list();
+  },
   watch: {
     isConnected: function (newVal) {
       if (newVal) {
@@ -337,7 +345,7 @@ export default {
         kind: "ConfigMap",
       };
       const encodeItem = encodeify(gvkObj, initItem);
-      localStorage.setItem("core-v1-ConfigMap", binaryToStr(encodeItem));
+      localStorage.setItem(ConfigMapgvk, binaryToStr(encodeItem));
       Notification({
         title: "导出成功",
         message: "success",
@@ -346,7 +354,7 @@ export default {
       });
     },
     export_yaml(item) {
-      const nsGvk = "core-v1-ConfigMap";
+      const nsGvk = ConfigMapgvk;
       const gvkArr = nsGvk.split("-");
       const cloneItem = cloneDeep(item);
       let fileName = item.metadata?.name || "";
@@ -367,13 +375,9 @@ export default {
     configmap_input_confirm() {
       let inputValue = this.configmap_input_value;
       if (inputValue) {
-        // let push_obj = { name: inputValue };
-        // this.configmap_obj.data.findIndex(
-        //   (object) => object.name === push_obj.name
-        // ) === -1
         if (!this.configmap_obj.data.hasOwnProperty(inputValue)) {
-          this.$set(this.configmap_obj.data, inputValue, "");
-          // this.configmap_obj.data.push(push_obj);
+          // this.$set(this.configmap_obj.data, inputValue, "");
+          this.configmap_obj.data[inputValue] = "";
           this.configmap_data_active_tab = inputValue;
         } else {
           this.$message({ type: "warning", message: "名称冲突" });
@@ -390,26 +394,12 @@ export default {
     },
     configmap_remove_tab(tab) {
       // console.log("===", tab);
-      // let tabs = this.configmap_obj.data;
-      // let activeName = this.configmap_data_active_tab;
-
-      // if (activeName === tab) {
-      //   tabs.forEach((item, index) => {
-      //     if (item.name === tab) {
-      //       let nextTab = tabs[index + 1] || tabs[index - 1];
-      //       if (nextTab) {
-      //         activeName = nextTab.name;
-      //       }
-      //     }
-      //   });
-      // }
       delete this.configmap_obj.data[tab];
       this.configmap_data_active_tab = Object.keys(this.configmap_obj.data)[0];
-      // this.configmap_data_list = tabs.filter((item) => item.name !== tab);
     },
     get_configmap_list() {
       let ns = localStorage.getItem("k8s_namespace");
-      const senddata = initSocketData(ns, "core-v1-ConfigMap", "list");
+      const senddata = initSocketData(ns, ConfigMapgvk, "list");
       sendSocketMessage(senddata, store);
     },
     create_configmap() {
@@ -417,6 +407,7 @@ export default {
       this.configmap_dialog = true;
       this.configmap_active_tab = "metadata";
       this.configmap_obj = Object.assign({}, ConfigMapObj);
+      this.configmap_obj.data = Object.assign({}, "");
     },
     update_configmap(row) {
       this.dialogStatus = "update_configmap";
@@ -430,10 +421,32 @@ export default {
       // console.log(val);
       this.configmap_obj.data[this.configmap_data_active_tab] = val;
     },
-    delete_configmap(row) {},
+    delete_configmap(row) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkGroup = getGvkGroup(ConfigMapgvk);
+      const params = deleteSocketData(gvkGroup, row);
+      const delete_data = initSocketData(ns, ConfigMapgvk, "delete", params);
+      sendSocketMessage(delete_data, store);
+    },
     submit_configmap() {
       if (this.dialogStatus === "create_configmap") {
-        //
+        // console.log(this.configmap_obj);
+        const gvkObj = {
+          group: "core",
+          version: "v1",
+          kind: "ConfigMap",
+        };
+        const item = cloneDeep(this.configmap_obj);
+        const param = updateSocketData(gvkObj, item);
+        const ns = localStorage.getItem("k8s_namespace");
+        const create_data = initSocketData(
+          ns,
+          "core-v1-ConfigMap",
+          "create",
+          param
+        );
+        sendSocketMessage(create_data, store);
+        this.configmap_dialog = false;
       } else if (this.dialogStatus === "update_configmap") {
         // console.log(this.configmap_obj);
         const gvkObj = {

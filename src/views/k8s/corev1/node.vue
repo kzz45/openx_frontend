@@ -23,7 +23,7 @@
             <div v-for="(item, index) in scoped.row.spec.taints" :key="index">
               <el-tag size="mini" type="warning">{{ item.effect }}</el-tag>
               <el-tag size="mini">{{ item.key }}</el-tag>
-              <el-tag size="mini">{{ item.value }}</el-tag>
+              <el-tag size="mini">{{ item.value || "" }}</el-tag>
             </div>
           </template>
         </el-table-column>
@@ -35,8 +35,14 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120px;">
+        <el-table-column label="操作" width="180px;">
           <template>
+            <el-button
+              type="primary"
+              icon="el-icon-edit"
+              size="small"
+              @click="update_node"
+            ></el-button>
             <el-tooltip
               class="item"
               effect="dark"
@@ -46,7 +52,7 @@
               <el-button
                 type="warning"
                 icon="el-icon-video-pause"
-                size="mini"
+                size="small"
               ></el-button>
             </el-tooltip>
             <el-tooltip
@@ -58,7 +64,7 @@
               <el-button
                 type="danger"
                 icon="el-icon-delete"
-                size="mini"
+                size="small"
               ></el-button>
             </el-tooltip>
           </template>
@@ -81,14 +87,16 @@
 import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
-import { initSocketData, sendSocketMessage } from "@/api/k8s";
-import protoRoot from "@/proto/proto";
-const protoApi = protoRoot.k8s.io.api;
-const protoRequest =
-  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
-const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
+import {
+  initSocketData,
+  updateSocketData,
+  sendSocketMessage,
+  returnResponse,
+  encodeify,
+  binaryToStr,
+} from "@/api/k8s";
 
-import MetaData from "../components/metadata.vue";
+import MetaDataTpl from "@/components/k8s/metadata.vue";
 
 const NodeObj = {
   metadata: {
@@ -118,11 +126,16 @@ export default {
     },
   },
   components: {
-    MetaData,
+    MetaDataTpl,
   },
   computed: {
-    ...mapGetters(["message"]),
+    ...mapGetters(["message", "isConnected"]),
     page_node_list: function () {
+      this.node_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
       return this.node_list.slice(
         (this.currentPage - 1) * 10,
         this.currentPage * 10
@@ -130,17 +143,32 @@ export default {
     },
   },
   watch: {
-    message: function () {
-      this.socket_onmessage(this.message);
+    isConnected: function (newVal) {
+      if (newVal) {
+        this.get_node_list();
+      }
+    },
+    message: function (newMsg) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "Node",
+      };
+      const result_list = returnResponse(
+        newMsg,
+        ns,
+        gvkObj,
+        this.updateWatch,
+        this.get_node_list
+      );
+      if (result_list) {
+        this.node_list = result_list;
+      }
     },
   },
   created() {
-    let ns = localStorage.getItem("k8s_namespace");
-    this.get_node_list(ns);
-  },
-  mounted() {
-    // this.get_node_list();
-    // console.log(this.node_list);
+    this.get_node_list();
   },
   data() {
     return {
@@ -152,19 +180,9 @@ export default {
     };
   },
   methods: {
-    tab_click(tab) {
-      if (tab.name === "node") {
-        let ns = localStorage.getItem("k8s_namespace");
-        this.get_node_list(ns);
-      } else if (tab.name === "affinity") {
-        let ns = localStorage.getItem("k8s_namespace");
-        this.get_affinity_list(ns);
-      } else if (tab.name === "toleration") {
-        let ns = localStorage.getItem("k8s_namespace");
-        this.get_toleration_list(ns);
-      }
-    },
-    get_node_list(ns) {
+    update_node(row) {},
+    get_node_list() {
+      let ns = localStorage.getItem("k8s_namespace");
       const senddata = initSocketData(ns, "core-v1-Node", "list");
       sendSocketMessage(senddata, store);
     },
@@ -185,52 +203,25 @@ export default {
       );
       sendSocketMessage(senddata, store);
     },
-    socket_onmessage(msg) {
-      let ns = localStorage.getItem("k8s_namespace");
-      const result = protoRequest.Response.decode(msg);
-      if (result.code === 1) {
-        const err_msg = String.fromCharCode.apply(null, result.raw);
-        this.$message({
-          type: "error",
-          message: err_msg,
+    updateWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.node_list.unshift(updateRaw);
+      } else if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.node_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
         });
-      }
-      if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "Node"
-      ) {
-        const node_list = protoApi["core"]["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        node_list.sort((itemA, itemB) => {
-          return (
-            itemB.metadata.creationTimestamp.seconds -
-            itemA.metadata.creationTimestamp.seconds
-          );
-        });
-        this.node_list = [];
-        for (let node of node_list) {
-          this.node_list.push(node);
+        if (modIndex >= 0) {
+          this.node_list[modIndex] = updateRaw;
         }
-      } else if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "Affinity"
-      ) {
-        const affinity_list = protoOpenx["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        console.log(affinity_list, "=====");
-      } else if (
-        result.verb === "list" &&
-        result.namespace === ns &&
-        result.groupVersionKind.kind === "Toleration"
-      ) {
-        const toleration_list = protoOpenx["v1"][
-          `${result.groupVersionKind.kind}List`
-        ].decode(result.raw).items;
-        console.log(toleration_list, "=====");
+      } else if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.node_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.node_list.splice(modIndex, 1);
+        }
       }
     },
   },

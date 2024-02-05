@@ -106,7 +106,7 @@ import {
 } from "@/api/k8s";
 
 import MetaData from "../components/metadata.vue";
-import yamlViewer from "../components/yamlViewer.vue";
+import yamlViewer from "../components/yamlviewer.vue";
 
 const SecretObj = {
   metadata: {
@@ -137,6 +137,11 @@ export default {
   computed: {
     ...mapGetters(["message", "namespace", "isConnected"]),
     page_serviceaccount_list: function () {
+      this.serviceaccount_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
       return this.serviceaccount_list.slice(
         (this.currentPage - 1) * 10,
         this.currentPage * 10
