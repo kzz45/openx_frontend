@@ -58,7 +58,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="参数" prop="args">
-            <el-button size="small" icon="el-icon-plus"></el-button>
+            <el-button size="small" icon="el-icon-circle-plus"></el-button>
             <el-tooltip placement="right" effect="light">
               <div
                 slot="content"

@@ -4,7 +4,7 @@
       <el-button
         type="primary"
         size="small"
-        icon="el-icon-plus"
+        icon="el-icon-circle-plus"
         @click="create_alb"
         >新增</el-button
       >
@@ -84,7 +84,7 @@
                   <el-form-item label="注解" prop="metadata.annotations">
                     <el-button
                       size="small"
-                      icon="el-icon-plus"
+                      icon="el-icon-circle-plus"
                       @click="add_annotations"
                     ></el-button>
                     <el-tag
@@ -102,7 +102,7 @@
                   <el-form-item label="标签" prop="metadata.labels">
                     <el-button
                       size="small"
-                      icon="el-icon-plus"
+                      icon="el-icon-circle-plus"
                       @click="add_labels"
                     ></el-button>
                     <el-tag

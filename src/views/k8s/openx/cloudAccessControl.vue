@@ -4,7 +4,7 @@
       <el-button
         type="primary"
         size="small"
-        icon="el-icon-plus"
+        icon="el-icon-circle-plus"
         @click="create_acl"
         >新增</el-button
       >
@@ -83,7 +83,7 @@
               <el-row>
                 <el-col :span="12">
                   <el-form-item label="注解" prop="metadata.annotations">
-                    <el-button size="small" icon="el-icon-plus"></el-button>
+                    <el-button size="small" icon="el-icon-circle-plus"></el-button>
                     <el-tag
                       v-for="tag in acl_obj.metadata.annotations"
                       :key="tag.label"
@@ -94,7 +94,7 @@
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="标签" prop="metadata.labels">
-                    <el-button size="small" icon="el-icon-plus"></el-button>
+                    <el-button size="small" icon="el-icon-circle-plus"></el-button>
                     <el-tag
                       v-for="tag in acl_obj.metadata.labels"
                       :key="tag.label"

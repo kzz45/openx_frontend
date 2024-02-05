@@ -23,7 +23,7 @@
           <el-form-item label="注解">
             <el-button
               size="small"
-              icon="el-icon-plus"
+              icon="el-icon-circle-plus"
               @click="add_annotations"
             ></el-button>
             <el-tag
@@ -39,7 +39,7 @@
           <el-form-item label="标签">
             <el-button
               size="small"
-              icon="el-icon-plus"
+              icon="el-icon-circle-plus"
               @click="add_labels"
             ></el-button>
             <el-tag

@@ -4,7 +4,7 @@
       <el-button
         type="primary"
         size="small"
-        icon="el-icon-plus"
+        icon="el-icon-circle-plus"
         @click="create_service"
         >新增</el-button
       >
@@ -159,7 +159,7 @@
                   <el-form-item label="注解" prop="metadata.annotations">
                     <el-button
                       size="small"
-                      icon="el-icon-plus"
+                      icon="el-icon-circle-plus"
                       @click="add_annotations"
                     ></el-button>
                     <el-tag
@@ -175,7 +175,7 @@
                   <el-form-item label="标签" prop="metadata.labels">
                     <el-button
                       size="small"
-                      icon="el-icon-plus"
+                      icon="el-icon-circle-plus"
                       @click="add_labels"
                     ></el-button>
                     <el-tag
@@ -214,7 +214,7 @@
                   <el-form-item label="选择器" prop="spec.selector">
                     <el-button
                       size="small"
-                      icon="el-icon-plus"
+                      icon="el-icon-circle-plus"
                       @click="add_selector"
                     ></el-button>
                     <el-tag
@@ -238,7 +238,7 @@
                     >
                       <el-button
                         size="small"
-                        icon="el-icon-plus"
+                        icon="el-icon-circle-plus"
                         @click="add_service_ports"
                       ></el-button>
                     </el-tooltip>

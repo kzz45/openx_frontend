@@ -29,7 +29,7 @@
           <el-form-item label="注解" prop="annotations">
             <el-button
               size="small"
-              icon="el-icon-plus"
+              icon="el-icon-circle-plus"
               @click="add_annotation"
             ></el-button>
             <el-tooltip placement="right" effect="light">
@@ -54,7 +54,7 @@
           <el-form-item label="标签" prop="labels">
             <el-button
               size="small"
-              icon="el-icon-plus"
+              icon="el-icon-circle-plus"
               @click="add_label"
             ></el-button>
             <el-tooltip placement="right" effect="light">

@@ -3,7 +3,7 @@
     <el-card class="box-card">
       <el-tabs v-model="active_tab" @tab-click="tab_click">
         <el-tab-pane label="ServiceAccount" name="ServiceAccount">
-          <el-button type="primary" size="small" icon="el-icon-plus"
+          <el-button type="primary" size="small" icon="el-icon-circle-plus"
             >新增</el-button
           >
           <el-table
@@ -66,7 +66,7 @@
           </el-pagination>
         </el-tab-pane>
         <el-tab-pane label="ClusterRole" name="ClusterRole">
-          <el-button type="primary" size="small" icon="el-icon-plus"
+          <el-button type="primary" size="small" icon="el-icon-circle-plus"
             >新增</el-button
           >
           <el-table
@@ -125,7 +125,7 @@
           </el-pagination>
         </el-tab-pane>
         <el-tab-pane label="ClusterRoleBinding" name="ClusterRoleBinding">
-          <el-button type="primary" size="small" icon="el-icon-plus"
+          <el-button type="primary" size="small" icon="el-icon-circle-plus"
             >新增</el-button
           >
           <el-table

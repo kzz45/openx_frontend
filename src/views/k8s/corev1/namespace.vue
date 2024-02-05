@@ -2,7 +2,7 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-button type="primary" size="small" icon="el-icon-plus"
+      <el-button type="primary" size="small" icon="el-icon-circle-plus"
         >新增</el-button
       >
       <el-table

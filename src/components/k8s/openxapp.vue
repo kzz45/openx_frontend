@@ -50,7 +50,7 @@
               <el-form-item label="标签" prop="labels">
                 <el-button
                   size="small"
-                  icon="el-icon-plus"
+                  icon="el-icon-circle-plus"
                   @click="add_labels"
                 ></el-button>
               </el-form-item>
@@ -59,7 +59,7 @@
               <el-form-item label="注解" prop="annotations">
                 <el-button
                   size="small"
-                  icon="el-icon-plus"
+                  icon="el-icon-circle-plus"
                   @click="add_annotations"
                 ></el-button>
               </el-form-item>
@@ -179,7 +179,7 @@
                 >
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="add_container_ports"
                   ></el-button>
                 </el-tooltip>
@@ -278,7 +278,7 @@
                 >
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="add_container_env"
                   ></el-button>
                 </el-tooltip>
@@ -354,7 +354,7 @@
               <el-form-item label="卷" prop="volumes">
                 <el-button
                   size="small"
-                  icon="el-icon-plus"
+                  icon="el-icon-circle-plus"
                   @click="add_volumes"
                 ></el-button>
               </el-form-item>
@@ -371,7 +371,7 @@
                 >
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="add_container_volumeMounts"
                   ></el-button>
                 </el-tooltip>
@@ -492,7 +492,7 @@
               <el-form-item label="选择器" prop="selector">
                 <el-button
                   size="small"
-                  icon="el-icon-plus"
+                  icon="el-icon-circle-plus"
                   @click="add_selector"
                 ></el-button>
                 <el-tag
@@ -516,7 +516,7 @@
                 >
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="add_service_ports"
                   ></el-button>
                 </el-tooltip>

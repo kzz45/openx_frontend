@@ -129,7 +129,7 @@
             <el-button
               type="primary"
               size="small"
-              icon="el-icon-plus"
+              icon="el-icon-circle-plus"
               @click="add_env"
             ></el-button>
           </el-form-item>

@@ -6,7 +6,7 @@
           <el-button
             type="primary"
             size="small"
-            icon="el-icon-plus"
+            icon="el-icon-circle-plus"
             @click="create_deplpy"
             >新增</el-button
           >
@@ -105,7 +105,7 @@
                 <el-form-item label="注解" prop="annotation">
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="create_annotation"
                   ></el-button>
                 </el-form-item>
@@ -114,7 +114,7 @@
                 <el-form-item label="标签" prop="label">
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="create_label"
                   ></el-button>
                 </el-form-item>

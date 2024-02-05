@@ -4,7 +4,7 @@
       <el-button
         type="primary"
         size="small"
-        icon="el-icon-plus"
+        icon="el-icon-circle-plus"
         @click="create_secret"
         >新增</el-button
       >

@@ -7,7 +7,7 @@
           <el-button
             type="primary"
             size="small"
-            icon="el-icon-plus"
+            icon="el-icon-circle-plus"
             @click="create_deployment"
             >新增</el-button
           >
@@ -225,7 +225,7 @@
                 <el-form-item label="选择标签" prop="spec.selector.matchLabels">
                   <el-button
                     size="small"
-                    icon="el-icon-plus"
+                    icon="el-icon-circle-plus"
                     @click="add_matchLabels"
                   ></el-button>
                   <el-tooltip placement="right" effect="light">
@@ -283,7 +283,7 @@
               v-else
               class="button-new-tag"
               size="small"
-              icon="el-icon-plus"
+              icon="el-icon-circle-plus"
               @click="container_name_input"
               >新增容器</el-button
             >
