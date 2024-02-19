@@ -124,6 +124,11 @@ export default {
   computed: {
     ...mapGetters(["message", "namespace", "isConnected"]),
     page_event_list: function () {
+      this.event_list.sort((itemL, itemR) => {
+        const itemLTime = itemL.metadata.creationTimestamp.seconds;
+        const itemRTime = itemR.metadata.creationTimestamp.seconds;
+        return itemRTime - itemLTime;
+      });
       return this.event_list.slice(
         (this.currentPage - 1) * 10,
         this.currentPage * 10

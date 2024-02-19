@@ -174,7 +174,6 @@ export default {
         this.get_node_list
       );
       if (result_list) {
-        console.log(result_list, "=====");
         this.node_list = result_list;
       }
 
