@@ -1,8 +1,13 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
-      <el-button type="danger" size="small" icon="el-icon-delete"
-        >删除</el-button
+      <el-button
+        type="danger"
+        size="small"
+        icon="el-icon-delete"
+        :disabled="multiple_pod_list.length === 0"
+        @click="batchDelObj"
+        >批量删除</el-button
       >
       <el-table
         :data="page_pod_list"
@@ -16,7 +21,9 @@
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
         <el-table-column label="更新策略" prop="">
           <template slot-scope="scoped">
-            <el-tag>{{ showLabelPoliy(scoped.row.metadata) }}</el-tag>
+            <el-tag size="mini">{{
+              showLabelPoliy(scoped.row.metadata)
+            }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="PodIP" prop="status.podIP"></el-table-column>
@@ -35,7 +42,14 @@
             <el-tag v-else type="danger">{{ scoped.row.status.phase }}</el-tag>
           </template>
         </el-table-column>
-        <!-- <el-table-column label="重启次数"></el-table-column> -->
+        <el-table-column label="CPU/内存">
+          <template slot-scope="scoped">
+            <el-tag size="mini">{{ get_cpu_mem(scoped.row).cpu }}</el-tag>
+            <el-tag size="mini" style="margin-left: 5px">{{
+              get_cpu_mem(scoped.row).mem
+            }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column
           label="命名空间"
           prop="metadata.namespace"
@@ -48,15 +62,15 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column align="right" width="200px">
-          <template slot="header" slot-scope="scope">
+        <el-table-column align="right" width="180px">
+          <!-- <template slot="header" slot-scope="scope">
             <el-input
               v-model="table_search"
               size="mini"
               placeholder="输入关键字搜索"
               style="width: 160px"
             ></el-input>
-          </template>
+          </template> -->
           <template slot-scope="scoped">
             <el-tooltip
               class="item"
@@ -126,7 +140,7 @@
                 <el-button
                   slot="reference"
                   type="primary"
-                  icon="el-icon-camera"
+                  icon="el-icon-tickets"
                   size="mini"
                 ></el-button>
               </el-popover>
@@ -180,6 +194,7 @@ import {
 } from "@/api/k8s";
 
 const Podgvk = "core-v1-Pod";
+const PodMetricgvk = "metrics.k8s.io-v1beta1-PodMetrics";
 
 export default {
   name: "PodList",
@@ -206,11 +221,12 @@ export default {
     isConnected: function (newVal, oldVal) {
       if (newVal === true) {
         this.get_pod_list();
+        this.get_pod_metrics_list();
       }
     },
     message: function (newMsg, oldMsg) {
       const ns = localStorage.getItem("k8s_namespace");
-      const gvkObj = {
+      const podGvkObj = {
         group: "core",
         version: "v1",
         kind: "Pod",
@@ -218,29 +234,47 @@ export default {
       const result_list = returnResponse(
         newMsg,
         ns,
-        gvkObj,
+        podGvkObj,
         this.updateWatch,
         this.get_pod_list
       );
       if (result_list) {
         this.pod_list = result_list;
       }
+      const metricsGvk = {
+        group: "metrics.k8s.io",
+        version: "v1beta1",
+        kind: "PodMetrics",
+      };
+      const metrics_list = returnResponse(
+        newMsg,
+        ns,
+        metricsGvk,
+        this.updateMetricsWatch
+      );
+      if (metrics_list) {
+        this.pod_metrics_list = metrics_list;
+      }
     },
     namespace: function () {
       this.get_pod_list();
+      this.get_pod_metrics_list();
     },
   },
   created() {
     this.get_pod_list();
+    this.get_pod_metrics_list();
   },
   mounted() {
     this.get_pod_list();
+    this.get_pod_metrics_list();
   },
   data() {
     return {
       currentPage: 1,
       table_search: "",
       pod_list: [],
+      pod_metrics_list: [],
       multiple_pod_list: [],
     };
   },
@@ -248,13 +282,95 @@ export default {
     showLabelPoliy,
     cancel_delete,
     handleSelectionChange(val) {
-      console.log(val);
       this.multiple_pod_list = val;
+    },
+    batchDelObj() {
+      this.$confirm("将批量删除所选项目, 是否继续?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          for (const item of this.multiple_pod_list) {
+            this.delete_pod(item);
+          }
+        })
+        .catch(() => {
+          this.$message({
+            type: "warning",
+            message: "你考虑的很全面",
+          });
+        });
     },
     get_pod_list() {
       let ns = localStorage.getItem("k8s_namespace");
       const senddata = initSocketData(ns, Podgvk, "list");
       sendSocketMessage(senddata, store);
+    },
+    get_pod_metrics_list() {
+      let ns = localStorage.getItem("k8s_namespace");
+      const senddata = initSocketData(ns, PodMetricgvk, "list");
+      sendSocketMessage(senddata, store);
+    },
+    get_cpu_mem(pod) {
+      const podInfo = this.pod_metrics_list.filter((item) => {
+        return (item.metadata.name = pod.metadata.name);
+      });
+      if (podInfo && podInfo.length >= 1) {
+        let cpu = 0;
+        let mem = 0;
+        for (let item of podInfo[0].containers) {
+          cpu += Number(item.usage.cpu.string.slice(0, -1) || 0);
+          const memK = this.getmemKi(item.usage.memory.string);
+          mem += memK || 0;
+        }
+        return { cpu: this.cpu_time(cpu), mem: this.bytesToSize(mem) };
+      }
+      return { cpu: 0, mem: 0 };
+    },
+    cpu_time(num) {
+      if (num <= 1000) {
+        return num + "ns";
+      }
+      if (Number((num / 1000).toFixed(2)) >= 1000) {
+        const usTime = Number((num / 1000).toFixed(2));
+        if (Number((usTime / 1000).toFixed(2)) >= 1000) {
+          return Number((usTime / 1000000).toFixed(2)) + "s";
+        } else {
+          return (usTime / 1000).toFixed(2) + "ms";
+        }
+      } else {
+        return (num / 1000).toFixed(2) + "μs";
+      }
+    },
+    bytesToSize(bytes) {
+      if (bytes === 0) return "0 Ki";
+      let k = 1000,
+        sizes = ["Ki", "Mi", "Gi", "Ti", "Pi", "Ei"],
+        i = Math.floor(Math.log(bytes) / Math.log(k));
+
+      return (bytes / Math.pow(k, i)).toPrecision(3) + " " + sizes[i];
+    },
+    getmemKi(stringM) {
+      if (!stringM.slice(0, -2)) {
+        return 0;
+      }
+      if (stringM.endsWith("Ki")) return Number(stringM.slice(0, -2));
+      if (stringM.endsWith("Mi")) {
+        return Number(stringM.slice(0, -2)) * 1024;
+      }
+      if (stringM.endsWith("Gi")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024;
+      }
+      if (stringM.endsWith("Ti")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024 * 1024;
+      }
+      if (stringM.endsWith("Pi")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024 * 1024 * 1024;
+      }
+      if (stringM.endsWith("Ei")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024 * 1024 * 1024 * 1024;
+      }
     },
     delete_pod(row) {
       const ns = localStorage.getItem("k8s_namespace");
@@ -281,6 +397,29 @@ export default {
         });
         if (modIndex >= 0) {
           this.pod_list.splice(modIndex, 1);
+        }
+      }
+    },
+    updateMetricsWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.pod_metrics_list.unshift(updateRaw);
+      }
+      if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.pod_metrics_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.pod_metrics_list[modIndex] = updateRaw;
+        }
+      }
+      if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.pod_metrics_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.pod_metrics_list.splice(modIndex, 1);
         }
       }
     },

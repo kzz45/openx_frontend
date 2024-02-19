@@ -2,12 +2,22 @@
 <template>
   <div class="app-container">
     <el-card class="box-card">
+      <el-button
+        type="danger"
+        size="small"
+        icon="el-icon-delete"
+        :disabled="multiple_event_list.length === 0"
+        @click="batchDelObj"
+        >批量删除</el-button
+      >
+
       <el-table
         :data="page_event_list"
         size="small"
         empty-text="啥也没有"
         border
         :row-style="TableRowStyle"
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="40"> </el-table-column>
         <el-table-column label="对象">
@@ -50,7 +60,7 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="60px">
+        <el-table-column label="操作" width="70px">
           <template slot-scope="scoped">
             <el-popconfirm
               title="确定删除吗？"
@@ -108,6 +118,7 @@ export default {
     return {
       currentPage: 1,
       event_list: [],
+      multiple_event_list: [],
     };
   },
   computed: {
@@ -157,6 +168,28 @@ export default {
         rowBackground.background = "#F8C471";
         return rowBackground;
       }
+    },
+    handleSelectionChange(val) {
+      // console.log(val);
+      this.multiple_event_list = val;
+    },
+    batchDelObj() {
+      this.$confirm("将批量删除所选项目, 是否继续?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          for (const item of this.multiple_event_list) {
+            this.delete_event(item);
+          }
+        })
+        .catch(() => {
+          this.$message({
+            type: "warning",
+            message: "你考虑的很全面",
+          });
+        });
     },
     get_event_list() {
       const ns = localStorage.getItem("k8s_namespace");

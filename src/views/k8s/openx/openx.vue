@@ -12,13 +12,14 @@
         >导入</el-button
       >
       <el-button type="primary" size="small" icon="el-icon-bottom"
-        >导入YAML</el-button
+        >从YAML导入</el-button
       >
       <el-button
         v-if="multiple_openx_list.length > 0"
         type="info"
         size="small"
         icon="el-icon-copy-document"
+        @click="copyObjToNs"
         >拷贝</el-button
       >
       <el-button
@@ -26,6 +27,7 @@
         type="warning"
         size="small"
         icon="el-icon-edit"
+        @click="batchEditObj"
         >编辑</el-button
       >
       <el-button
@@ -33,6 +35,7 @@
         type="danger"
         size="small"
         icon="el-icon-delete"
+        @click="batchDelObj"
         >删除</el-button
       >
       <el-table
@@ -46,15 +49,18 @@
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
         <el-table-column label="应用名称">
           <template slot-scope="scoped">
-            <el-tag
+            <div
               v-for="(info, index) in getInfoInGvk(
                 'applications',
                 scoped.row,
                 'openx.neverdown.org-v1-Openx'
               )"
               :key="index"
-              >{{ info.appName }}</el-tag
             >
+              <el-tag effect="dark" @click.stop="update_openx(scoped.row)">{{
+                info.appName
+              }}</el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="副本/状态">
@@ -67,22 +73,26 @@
               )"
               :key="index"
             >
-              <el-tag @click.stop="update_openx(scoped.row)">{{
+              <el-tag effect="dark" @click.stop="update_openx(scoped.row)">{{
                 info.replicas
               }}</el-tag>
-              <el-tag
+              <el-button
                 v-if="Number(info.replicas) > 0"
-                type="success"
-                @click.stop="edit_pod"
-                style="margin-left: 10px"
-                >Run</el-tag
-              >
-              <el-tag
-                v-else
                 type="danger"
-                @click.stop="edit_pod"
+                icon="el-icon-video-pause"
+                @click.stop="stop_app(scoped.row)"
+                size="small"
                 style="margin-left: 10px"
-                >Stop</el-tag
+                >Stop</el-button
+              >
+              <el-button
+                v-else
+                type="primary"
+                size="small"
+                icon="el-icon-video-play"
+                @click.stop="start_app(scoped.row)"
+                style="margin-left: 10px"
+                >Start</el-button
               >
             </div>
           </template>
@@ -168,6 +178,15 @@
         </el-table-column>
       </el-table>
 
+      <el-pagination
+        background
+        :page-size="10"
+        :current-page.sync="currentPage"
+        :total="openx_list.length"
+        layout="total, prev, pager, next"
+        style="text-align: left; margin-top: 20px"
+      >
+      </el-pagination>
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="openx_dialog"
@@ -240,14 +259,32 @@
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="autoscale_dialog"
-        scrollable
-        width="30%"
+        width="40%"
       >
-        <el-form size="small" label-width="100px">
-          <el-form-item label="应用"> </el-form-item>
-          <el-form-item label="副本" name="replicas">
-            <el-input-number size="small" v-model="replicas"></el-input-number>
-          </el-form-item>
+        <el-form
+          ref="openx_autoscale_obj_refs"
+          :model="openx_autoscale_obj"
+          size="small"
+          label-width="100px"
+        >
+          <el-row
+            v-for="(item, index) in openx_autoscale_obj.spec.applications"
+            :key="index"
+          >
+            <el-col :span="12">
+              <el-form-item label="应用名称" prop="name">
+                <el-tag>{{ item.pod.spec.containers[0].name }}</el-tag>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="副本" name="replicas">
+                <el-input-number
+                  v-model="item.replicas"
+                  size="small"
+                ></el-input-number>
+              </el-form-item>
+            </el-col>
+          </el-row>
         </el-form>
         <span slot="footer" class="dialog-footer">
           <el-button size="small" @click="autoscale_dialog = false"
@@ -258,6 +295,47 @@
           >
         </span>
       </el-dialog>
+
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="copyobj_dialog"
+        width="40%"
+      >
+        <el-form
+          ref="openx_copy_obj_refs"
+          :model="openx_copy_obj"
+          size="small"
+          label-width="100px"
+        >
+          <el-form-item label="目标命名空间" name="namespace">
+            <el-select
+              v-model="openx_copy_obj.metadata.namespace"
+              placeholder=""
+            >
+              <el-option
+                v-for="(item, index) in namespace_list"
+                :label="item"
+                :value="item"
+                :key="index"
+              ></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button size="small" @click="copyobj_dialog = false"
+            >取 消</el-button
+          >
+          <el-button type="primary" size="small" @click="submit_openx"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
+
+      <el-dialog
+        :title="textMap[dialogStatus]"
+        :visible.sync="batchedit_dialog"
+        width="40%"
+      ></el-dialog>
     </el-card>
   </div>
 </template>
@@ -270,7 +348,13 @@ import { saveAs } from "file-saver";
 import { parseTime } from "@/utils";
 import { Notification } from "element-ui";
 import { cloneDeep, debounce } from "lodash";
-import { initSocketData, sendSocketMessage, returnResponse } from "@/api/k8s";
+import {
+  initSocketData,
+  sendSocketMessage,
+  updateSocketData,
+  deleteSocketData,
+  returnResponse,
+} from "@/api/k8s";
 import {
   binaryToStr,
   formatTime,
@@ -279,15 +363,12 @@ import {
   encodeify,
   cancel_delete,
 } from "@/views/k8s/utils/utils";
-import protoRoot from "@/proto/proto";
-const protoApi = protoRoot.k8s.io.api;
-const protoRequest =
-  protoRoot.github.com.kzz45.discovery.pkg.openx.aggregator.proto;
-const protoOpenx = protoRoot.github.com.kzz45.discovery.pkg.apis.openx;
+
 import MetadataTpl from "@/components/k8s/metadata";
 import OpenxAppTpl from "@/components/k8s/openxapp";
 
 const Openxgvk = "openx.neverdown.org-v1-Openx";
+const Namespacegvk = "core-v1-Namespace";
 
 const MetadataObj = {
   name: "",
@@ -324,6 +405,9 @@ export default {
   created() {
     this.get_openx_list();
   },
+  mounted() {
+    this.get_openx_list();
+  },
   watch: {
     isConnected: function (newVal) {
       if (newVal) {
@@ -332,20 +416,35 @@ export default {
     },
     message: function (newVal) {
       let ns = localStorage.getItem("k8s_namespace");
-      let gvkObj = {
+      let openxGvkObj = {
         group: "openx.neverdown.org",
         version: "v1",
         kind: "Openx",
       };
-      let result_list = returnResponse(
+      let openx_result_list = returnResponse(
         newVal,
         ns,
-        gvkObj,
+        openxGvkObj,
         this.updateWatch,
         this.get_openx_list
       );
-      if (result_list) {
-        this.openx_list = result_list;
+      if (openx_result_list) {
+        this.openx_list = openx_result_list;
+      }
+      let nsGvkObj = {
+        group: "core",
+        version: "v1",
+        kind: "Namespace",
+      };
+      let ns_result_list = returnResponse(
+        newVal,
+        ns,
+        nsGvkObj,
+        "",
+        this.get_namespace_list
+      );
+      if (ns_result_list) {
+        this.namespace_list = ns_result_list;
       }
     },
     namespace: function () {
@@ -357,11 +456,12 @@ export default {
       textMap: {
         create_openx: "新增应用",
         update_openx: "编辑应用",
-        autoscale: "伸缩",
+        autoscale: "应用伸缩",
+        copyobj: "拷贝应用",
+        batchedit: "批量编辑",
       },
       dialogStatus: "",
       openx_dialog: false,
-      autoscale_dialog: false,
       replicas: 0,
       dialog_tabs: "metadata",
       openx_obj: {
@@ -375,6 +475,31 @@ export default {
           applications: [],
         },
       },
+      autoscale_dialog: false,
+      openx_autoscale_obj: {
+        metadata: {
+          name: "",
+          namespace: "",
+          annotations: {},
+          labels: {},
+        },
+        spec: {
+          applications: [],
+        },
+      },
+      copyobj_dialog: false,
+      openx_copy_obj: {
+        metadata: {
+          name: "",
+          namespace: "",
+          annotations: {},
+          labels: {},
+        },
+        spec: {
+          applications: [],
+        },
+      },
+      batchedit_dialog: false,
       currentPage: 1,
       openx_list: [],
       multiple_openx_list: [],
@@ -382,6 +507,7 @@ export default {
       app_name_visible: false,
       app_form_appName: "",
       app_index: 0,
+      namespace_list: [],
     };
   },
   methods: {
@@ -393,9 +519,24 @@ export default {
       this.table_loading = false;
     },
     handleSelectionChange(val) {
-      console.log(val, "===========");
+      // console.log(val, "===========");
       this.multiple_openx_list = val;
+      this.namespace_list = [];
+      const rules = JSON.parse(localStorage.getItem("clusterRole"));
+      for (let rule in rules) {
+        this.namespace_list.push(rule);
+      }
+      console.log(this.namespace_list, "======");
     },
+    copyObjToNs() {
+      this.dialogStatus = "copyobj";
+      this.copyobj_dialog = true;
+    },
+    batchEditObj() {
+      this.dialogStatus = "batchedit";
+      this.batchedit_dialog = true;
+    },
+    batchDelObj() {},
     add_app_form() {
       let app_form_appName = this.app_form_appName;
       let inputIndex = this.app_index;
@@ -406,8 +547,6 @@ export default {
           replicas: 1,
           watchPolicy: "manual",
           pod: {
-            // labels: {},
-            // annotations: {},
             spec: {
               containers: [
                 {
@@ -478,12 +617,36 @@ export default {
       this.openx_obj = Object.assign({}, row);
       this.app_index = 0;
     },
-    edit_pod() {},
-    delete_openx(row) {
-      this.openx_obj = Object.assign({}, row);
+    stop_app(item) {
+      const gvkObj = {
+        group: "openx.neverdown.org",
+        version: "v1",
+        kind: "Openx",
+      };
+      const temp = cloneDeep(item);
+      temp.spec.applications[0].replicas = 0;
+      const param = updateSocketData(gvkObj, temp);
       const ns = localStorage.getItem("k8s_namespace");
-      const message = protoOpenx["v1"]["Openx"].create(this.openx_obj);
-      const params = protoOpenx["v1"]["Openx"].encode(message).finish();
+      const updatedata = initSocketData(ns, Openxgvk, "update", param);
+      sendSocketMessage(updatedata, store);
+    },
+    start_app(item) {
+      const gvkObj = {
+        group: "openx.neverdown.org",
+        version: "v1",
+        kind: "Openx",
+      };
+      const temp = cloneDeep(item);
+      temp.spec.applications[0].replicas = 1;
+      const param = updateSocketData(gvkObj, temp);
+      const ns = localStorage.getItem("k8s_namespace");
+      const updatedata = initSocketData(ns, Openxgvk, "update", param);
+      sendSocketMessage(updatedata, store);
+    },
+    delete_openx(row) {
+      const ns = localStorage.getItem("k8s_namespace");
+      const gvkGroup = getGvkGroup(Openxgvk);
+      const params = deleteSocketData(gvkGroup, row);
       const delete_data = initSocketData(ns, Openxgvk, "delete", params);
       sendSocketMessage(delete_data, store);
     },
@@ -494,21 +657,24 @@ export default {
         this.export(item);
       } else if (command === "autoscale") {
         //伸缩
-        this.autoscale();
+        this.autoscale(item);
       } else if (command === "export_yaml") {
         //导出YAML
         this.export_yaml(item);
       } else if (command === "restart") {
         //重启
+        this.restart(item);
       }
     },
     autoscale(item) {
+      // console.log(item, "=====");
       this.dialogStatus = "autoscale";
       this.autoscale_dialog = true;
+      this.openx_autoscale_obj = Object.assign({}, item);
     },
+    restart(item) {},
     export(item) {
       const cloneItem = cloneDeep(item);
-      // const nsGvk = "openx.neverdown.org-v1-Openx";
       const initItem = initObject(Openxgvk);
       if (initItem.metadata) {
         for (let metaIndex in initItem.metadata) {
@@ -588,17 +754,41 @@ export default {
     },
     submit_openx() {
       if (this.dialogStatus === "create_openx") {
-        // console.log(this.openx_obj, "=================");
+        const gvkObj = {
+          group: "openx.neverdown.org",
+          version: "v1",
+          kind: "Openx",
+        };
+        const item = cloneDeep(this.openx_obj);
+        const param = updateSocketData(gvkObj, item);
         const ns = localStorage.getItem("k8s_namespace");
-        const message = protoOpenx["v1"]["Openx"].create(this.openx_obj);
-        const params = protoOpenx["v1"]["Openx"].encode(message).finish();
-        const createdata = initSocketData(ns, Openxgvk, "create", params);
+        const createdata = initSocketData(ns, Openxgvk, "create", param);
         sendSocketMessage(createdata, store);
         this.openx_dialog = false;
       } else if (this.dialogStatus === "update_openx") {
-        console.log(this.opex_obj, "------------------");
+        const gvkObj = {
+          group: "openx.neverdown.org",
+          version: "v1",
+          kind: "Openx",
+        };
+        const item = cloneDeep(this.openx_obj);
+        const param = updateSocketData(gvkObj, item);
+        const ns = localStorage.getItem("k8s_namespace");
+        const createdata = initSocketData(ns, Openxgvk, "update", param);
+        sendSocketMessage(createdata, store);
+        this.openx_dialog = false;
       } else if (this.dialogStatus === "autoscale") {
-        console.log("---------------");
+        const gvkObj = {
+          group: "openx.neverdown.org",
+          version: "v1",
+          kind: "Openx",
+        };
+        const item = cloneDeep(this.openx_autoscale_obj);
+        const param = updateSocketData(gvkObj, item);
+        const ns = localStorage.getItem("k8s_namespace");
+        const update_data = initSocketData(ns, Openxgvk, "update", param);
+        sendSocketMessage(update_data, store);
+        this.autoscale_dialog = false;
       }
     },
     get_openx_list() {
@@ -606,9 +796,14 @@ export default {
       const senddata = initSocketData(ns, Openxgvk, "list");
       sendSocketMessage(senddata, store);
     },
+    get_namespace_list() {
+      let ns = localStorage.getItem("k8s_namespace");
+      const senddata = initSocketData(ns, Namespacegvk, "list");
+      sendSocketMessage(senddata, store);
+    },
     updateWatch(types, updateRaw) {
       if (types === "ADDED") {
-        this.openx_list.unshift(decodeRaw);
+        this.openx_list.unshift(updateRaw);
       } else if (types === "MODIFIED") {
         const modName = updateRaw.metadata.name;
         const modIndex = this.openx_list.findIndex((ser) => {

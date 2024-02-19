@@ -348,7 +348,7 @@ export function initObject(gvk) {
 }
 
 export const encodeify = (gvk, item) => {
-  const protoFetch = {};
+  let protoFetch = {};
   if (gvk.group.startsWith("openx")) {
     protoFetch = protoOpenx[gvk.version];
   } else if (gvk.group.startsWith("rbac")) {

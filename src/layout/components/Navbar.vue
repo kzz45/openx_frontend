@@ -10,7 +10,11 @@
 
     <div class="right-menu">
       <global-namespace
-        style="width: 200px; margin-left: 10px; vertical-align: top"
+        style="
+          width: 200px;
+          vertical-align: top;
+          margin-right: 10px;
+        "
       ></global-namespace>
       <el-dropdown class="avatar-container" trigger="click">
         <div class="avatar-wrapper">

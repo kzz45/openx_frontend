@@ -128,7 +128,7 @@ export const constantRoutes = [
         name: "Secret",
         component: () => import("@/views/k8s/corev1/secret"),
         meta: {
-          title: "保密字典",
+          title: "密文列表",
           icon: "secret",
         },
       },

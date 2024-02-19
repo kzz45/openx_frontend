@@ -17,13 +17,20 @@
             {{ scoped.row.status.conditions.slice(-1)[0].type }}
           </template>
         </el-table-column>
-        <!-- <el-table-column label="CPU/内存"></el-table-column> -->
+        <el-table-column label="CPU/内存">
+          <template slot-scope="scoped">
+            <el-tag size="mini">{{ get_cpu_mem(scoped.row).cpu }}</el-tag>
+            <el-tag size="mini" style="margin-left: 5px">{{
+              get_cpu_mem(scoped.row).mem
+            }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="污点">
           <template slot-scope="scoped">
             <div v-for="(item, index) in scoped.row.spec.taints" :key="index">
               <el-tag size="mini" type="warning">{{ item.effect }}</el-tag>
               <el-tag size="mini">{{ item.key }}</el-tag>
-              <el-tag size="mini">{{ item.value || "" }}</el-tag>
+              <el-tag size="mini">{{ item.value || "空值" }}</el-tag>
             </div>
           </template>
         </el-table-column>
@@ -98,6 +105,9 @@ import {
 
 import MetaDataTpl from "@/components/k8s/metadata.vue";
 
+const Nodegvk = "core-v1-Node";
+const NodeMetricgvk = "metrics.k8s.io-v1beta1-NodeMetrics";
+
 const NodeObj = {
   metadata: {
     name: "",
@@ -146,6 +156,7 @@ export default {
     isConnected: function (newVal) {
       if (newVal) {
         this.get_node_list();
+        this.get_node_metrics_list();
       }
     },
     message: function (newMsg) {
@@ -163,27 +174,109 @@ export default {
         this.get_node_list
       );
       if (result_list) {
+        console.log(result_list, "=====");
         this.node_list = result_list;
+      }
+
+      const metricsGvk = {
+        group: "metrics.k8s.io",
+        version: "v1beta1",
+        kind: "NodeMetrics",
+      };
+      const metrics_list = returnResponse(
+        newMsg,
+        ns,
+        metricsGvk,
+        this.updateNodeMetricsWatch
+      );
+      if (metrics_list) {
+        this.node_metrics_list = metrics_list;
       }
     },
   },
   created() {
     this.get_node_list();
+    this.get_node_metrics_list();
   },
   data() {
     return {
       active_tab: "node",
       currentPage: 1,
       node_list: [],
+      node_metrics_list: [],
       affinity_list: [],
       toleration_list: [],
     };
   },
   methods: {
     update_node(row) {},
+    get_cpu_mem(node) {
+      const nodeInfo = this.node_metrics_list.filter((item) => {
+        return (item.metadata.name = node.metadata.name);
+      });
+      if (nodeInfo && nodeInfo.length >= 1) {
+        let cpu = 0;
+        let mem = 0;
+        const nodeA = nodeInfo[0];
+        cpu += Number(nodeA.usage.cpu.string.slice(0, -1) || 0);
+        const memK = this.getmemKi(nodeA.usage.memory.string);
+        mem += memK || 0;
+        return { cpu: this.cpu_time(cpu), mem: this.bytesToSize(mem) };
+      }
+      return { cpu: 0, mem: 0 };
+    },
+    cpu_time(num) {
+      if (num <= 1000) {
+        return num + "ns";
+      }
+      if (Number((num / 1000).toFixed(2)) >= 1000) {
+        const usTime = Number((num / 1000).toFixed(2));
+        if (Number((usTime / 1000).toFixed(2)) >= 1000) {
+          return Number((usTime / 1000000).toFixed(2)) + "s";
+        } else {
+          return (usTime / 1000).toFixed(2) + "ms";
+        }
+      } else {
+        return (num / 1000).toFixed(2) + "μs";
+      }
+    },
+    bytesToSize(bytes) {
+      if (bytes === 0) return "0 Ki";
+      let k = 1000,
+        sizes = ["Ki", "Mi", "Gi", "Ti", "Pi", "Ei"],
+        i = Math.floor(Math.log(bytes) / Math.log(k));
+
+      return (bytes / Math.pow(k, i)).toPrecision(3) + " " + sizes[i];
+    },
+    getmemKi(stringM) {
+      if (!stringM.slice(0, -2)) {
+        return 0;
+      }
+      if (stringM.endsWith("Ki")) return Number(stringM.slice(0, -2));
+      if (stringM.endsWith("Mi")) {
+        return Number(stringM.slice(0, -2)) * 1024;
+      }
+      if (stringM.endsWith("Gi")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024;
+      }
+      if (stringM.endsWith("Ti")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024 * 1024;
+      }
+      if (stringM.endsWith("Pi")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024 * 1024 * 1024;
+      }
+      if (stringM.endsWith("Ei")) {
+        return Number(stringM.slice(0, -2)) * 1024 * 1024 * 1024 * 1024 * 1024;
+      }
+    },
     get_node_list() {
       let ns = localStorage.getItem("k8s_namespace");
-      const senddata = initSocketData(ns, "core-v1-Node", "list");
+      const senddata = initSocketData(ns, Nodegvk, "list");
+      sendSocketMessage(senddata, store);
+    },
+    get_node_metrics_list() {
+      let ns = localStorage.getItem("k8s_namespace");
+      const senddata = initSocketData(ns, NodeMetricgvk, "list");
       sendSocketMessage(senddata, store);
     },
     // 亲和性
@@ -221,6 +314,29 @@ export default {
         });
         if (modIndex >= 0) {
           this.node_list.splice(modIndex, 1);
+        }
+      }
+    },
+    updateNodeMetricsWatch(types, updateRaw) {
+      if (types === "ADDED") {
+        this.node_metrics_list.unshift(updateRaw);
+      }
+      if (types === "MODIFIED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.node_metrics_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.node_metrics_list[modIndex] = updateRaw;
+        }
+      }
+      if (types === "DELETED") {
+        const modName = updateRaw.metadata.name;
+        const modIndex = this.node_metrics_list.findIndex((ser) => {
+          return ser.metadata.name === modName;
+        });
+        if (modIndex >= 0) {
+          this.node_metrics_list.splice(modIndex, 1);
         }
       }
     },
