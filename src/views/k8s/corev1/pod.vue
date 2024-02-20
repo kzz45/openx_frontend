@@ -62,15 +62,7 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column align="right" width="180px">
-          <!-- <template slot="header" slot-scope="scope">
-            <el-input
-              v-model="table_search"
-              size="mini"
-              placeholder="输入关键字搜索"
-              style="width: 160px"
-            ></el-input>
-          </template> -->
+        <el-table-column label="操作" width="180px">
           <template slot-scope="scoped">
             <el-tooltip
               class="item"
@@ -91,11 +83,12 @@
                     width="200"
                   ></el-table-column>
                   <el-table-column label="操作">
-                    <template>
+                    <template slot-scope="scoped2">
                       <el-button
                         type="success"
                         icon="el-icon-s-promotion"
                         size="mini"
+                        @click="goTerm(scoped.row, scoped2.row)"
                       ></el-button>
                     </template>
                   </el-table-column>
@@ -128,11 +121,12 @@
                     width="200"
                   ></el-table-column>
                   <el-table-column label="操作">
-                    <template>
+                    <template slot-scope="scoped3">
                       <el-button
                         type="primary"
                         icon="el-icon-s-promotion"
                         size="mini"
+                        @click="vieLog(scoped.row, scoped3.row)"
                       ></el-button>
                     </template>
                   </el-table-column>
@@ -184,7 +178,11 @@ import store from "@/store";
 import { mapGetters } from "vuex";
 import { parseTime } from "@/utils";
 import { Notification } from "element-ui";
-import { showLabelPoliy, cancel_delete } from "@/views/k8s/utils/utils";
+import {
+  showLabelPoliy,
+  cancel_delete,
+  openTerm,
+} from "@/views/k8s/utils/utils";
 import {
   initSocketData,
   sendSocketMessage,
@@ -301,6 +299,14 @@ export default {
             message: "你考虑的很全面",
           });
         });
+    },
+    goTerm(pod, container) {
+      console.log(pod, container, "===");
+      openTerm(pod, container, "bash");
+    },
+    vieLog(pod, container) {
+      console.log(pod, container, "===");
+      openTerm(pod, container, "log", 0);
     },
     get_pod_list() {
       let ns = localStorage.getItem("k8s_namespace");

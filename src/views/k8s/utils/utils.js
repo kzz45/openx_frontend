@@ -1,4 +1,6 @@
 import store from "@/store";
+import axios from "axios";
+import router from "@/router";
 import moment from "moment";
 import { cloneDeep } from "lodash";
 import { Notification } from "element-ui";
@@ -370,4 +372,34 @@ export function cancel_delete() {
     type: "warning",
     duration: 3000,
   });
+}
+
+export async function openTerm(pod, container, types, logSeconds) {
+  const cig = await axios.get("config/config.json");
+  let env = cig.data;
+  localStorage.setItem("termToken", String(localStorage.getItem("k8s_token")));
+  if (types === "log") {
+    const routeData = router.resolve({
+      path: "/log",
+      query: {
+        namespace: pod.metadata.namespace,
+        podname: pod.metadata.name,
+        containername: container.name,
+        types,
+        logSeconds,
+      },
+    });
+    window.open(routeData.href, "_blank");
+  } else {
+    const routeData = router.resolve({
+      path: "/term",
+      query: {
+        namespace: pod.metadata.namespace,
+        podname: pod.metadata.name,
+        containername: container.name,
+        types,
+      },
+    });
+    window.open(routeData.href, "_blank");
+  }
 }

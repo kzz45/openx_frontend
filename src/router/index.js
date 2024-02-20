@@ -171,6 +171,16 @@ export const constantRoutes = [
       },
     ],
   },
+  {
+    hidden: true,
+    path: "/term",
+    component: () => import("@/views/k8s/terminal.vue"),
+  },
+  {
+    hidden: true,
+    path: "/log",
+    component: () => import("@/views/k8s/log.vue"),
+  },
   // 这里就不需要了
   // {
   //   path: "/appsv1",
