@@ -19,10 +19,16 @@
         <el-table-column type="selection" width="55"> </el-table-column>
 
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
-        <el-table-column label="更新策略" prop="">
+        <!-- <el-table-column label="镜像" prop="">
+          <template slot-scope="scoped"></template>
+        </el-table-column> -->
+        <el-table-column label="更新策略/镜像" prop="">
           <template slot-scope="scoped">
             <el-tag size="mini">{{
-              showLabelPoliy(scoped.row.metadata)
+              showLabelPoliy(scoped.row.metadata) || "Always"
+            }}</el-tag>
+            <el-tag size="mini" style="margin-left: 5px">{{
+              showImage(scoped.row, scoped.row.spec.containers)
             }}</el-tag>
           </template>
         </el-table-column>
@@ -277,6 +283,7 @@ export default {
         this.get_pod_list
       );
       if (result_list) {
+        // console.log(result_list);
         this.pod_list = result_list;
       }
       const metricsGvk = {
@@ -340,6 +347,26 @@ export default {
             message: "你考虑的很全面",
           });
         });
+    },
+    showImage(pod, containers) {
+      // const fetchIndex = containers.findIndex((con) => {
+      //   return con.name === pod.metadata.name;
+      // });
+      // let image = "";
+      let image = containers[0].image;
+      // if (fetchIndex >= 0) {
+      // } else {
+      //   return "";
+      // }
+      let arr = image.split("/");
+      if (arr.length <= 0) {
+        return "";
+      }
+      if (arr.length >= 2) {
+        return arr.splice(-2).join("/");
+      } else {
+        return arr[0];
+      }
     },
     goTerm(pod, container) {
       // console.log(pod, container, "===");
