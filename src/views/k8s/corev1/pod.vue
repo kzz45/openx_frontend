@@ -82,14 +82,21 @@
                     label="Container"
                     width="200"
                   ></el-table-column>
-                  <el-table-column label="操作">
+                  <el-table-column label="操作" width="80px;">
                     <template slot-scope="scoped2">
-                      <el-button
-                        type="success"
-                        icon="el-icon-s-promotion"
-                        size="mini"
-                        @click="goTerm(scoped.row, scoped2.row)"
-                      ></el-button>
+                      <el-tooltip
+                        class="item"
+                        effect="dark"
+                        content="登录终端"
+                        placement="top"
+                      >
+                        <el-button
+                          type="success"
+                          icon="el-icon-s-promotion"
+                          size="mini"
+                          @click="goTerm(scoped.row, scoped2.row)"
+                        ></el-button>
+                      </el-tooltip>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -120,14 +127,49 @@
                     label="Container"
                     width="200"
                   ></el-table-column>
-                  <el-table-column label="操作">
+                  <el-table-column label="操作" width="180px;">
                     <template slot-scope="scoped3">
-                      <el-button
-                        type="primary"
-                        icon="el-icon-s-promotion"
-                        size="mini"
-                        @click="vieLog(scoped.row, scoped3.row)"
-                      ></el-button>
+                      <el-tooltip
+                        class="item"
+                        effect="dark"
+                        content="查看实时日志"
+                        placement="top"
+                      >
+                        <el-button
+                          type="primary"
+                          icon="el-icon-s-promotion"
+                          size="mini"
+                          @click="viewLog(scoped.row, scoped3.row)"
+                        ></el-button>
+                      </el-tooltip>
+                      <el-tooltip
+                        class="item"
+                        effect="dark"
+                        content="下载当前日志"
+                        placement="top"
+                      >
+                        <el-button
+                          type="info"
+                          icon="el-icon-download"
+                          size="mini"
+                          @click="
+                            downloadLog(scoped.row, scoped3.row, false, 0)
+                          "
+                        ></el-button>
+                      </el-tooltip>
+                      <el-tooltip
+                        class="item"
+                        effect="dark"
+                        content="下载之前日志"
+                        placement="top"
+                      >
+                        <el-button
+                          type="info"
+                          icon="el-icon-refresh-left"
+                          size="mini"
+                          @click="downloadLog(scoped.row, scoped3.row, true, 0)"
+                        ></el-button>
+                      </el-tooltip>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -156,9 +198,6 @@
             </el-popconfirm>
           </template>
         </el-table-column>
-        <!-- <el-table-column label="操作" width="180px;"> -->
-
-        <!-- </el-table-column> -->
       </el-table>
       <el-pagination
         background
@@ -182,6 +221,7 @@ import {
   showLabelPoliy,
   cancel_delete,
   openTerm,
+  download,
 } from "@/views/k8s/utils/utils";
 import {
   initSocketData,
@@ -248,7 +288,8 @@ export default {
         newMsg,
         ns,
         metricsGvk,
-        this.updateMetricsWatch
+        this.updateMetricsWatch,
+        this.get_pod_metrics_list
       );
       if (metrics_list) {
         this.pod_metrics_list = metrics_list;
@@ -301,12 +342,21 @@ export default {
         });
     },
     goTerm(pod, container) {
-      console.log(pod, container, "===");
+      // console.log(pod, container, "===");
       openTerm(pod, container, "bash");
     },
-    vieLog(pod, container) {
-      console.log(pod, container, "===");
+    viewLog(pod, container) {
+      // console.log(pod, container, "===");
       openTerm(pod, container, "log", 0);
+    },
+    async downloadLog(pod, container, isPre, time) {
+      // console.log(pod, container, "===");
+      if (isPre) {
+        container.previousDownloading = true;
+      } else {
+        container.currentDownloading = true;
+      }
+      await download(pod, container, isPre, time);
     },
     get_pod_list() {
       let ns = localStorage.getItem("k8s_namespace");
@@ -320,14 +370,14 @@ export default {
     },
     get_cpu_mem(pod) {
       const podInfo = this.pod_metrics_list.filter((item) => {
-        return (item.metadata.name = pod.metadata.name);
+        return item.metadata.name === pod.metadata.name;
       });
       if (podInfo && podInfo.length >= 1) {
         let cpu = 0;
         let mem = 0;
-        for (let item of podInfo[0].containers) {
-          cpu += Number(item.usage.cpu.string.slice(0, -1) || 0);
-          const memK = this.getmemKi(item.usage.memory.string);
+        for (let con of podInfo[0].containers) {
+          cpu += Number(con.usage.cpu.string.slice(0, -1) || 0);
+          const memK = this.getmemKi(con.usage.memory.string);
           mem += memK || 0;
         }
         return { cpu: this.cpu_time(cpu), mem: this.bytesToSize(mem) };

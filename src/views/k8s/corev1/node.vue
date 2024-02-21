@@ -439,7 +439,7 @@ export default {
     },
     get_cpu_mem(node) {
       const nodeInfo = this.node_metrics_list.filter((item) => {
-        return (item.metadata.name = node.metadata.name);
+        return item.metadata.name === node.metadata.name;
       });
       if (nodeInfo && nodeInfo.length >= 1) {
         let cpu = 0;

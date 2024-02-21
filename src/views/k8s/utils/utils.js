@@ -2,6 +2,7 @@ import store from "@/store";
 import axios from "axios";
 import router from "@/router";
 import moment from "moment";
+import { saveAs } from "file-saver";
 import { cloneDeep } from "lodash";
 import { Notification } from "element-ui";
 import protoRoot from "@/proto/proto";
@@ -402,4 +403,58 @@ export async function openTerm(pod, container, types, logSeconds) {
     });
     window.open(routeData.href, "_blank");
   }
+}
+
+export async function download(data, container, type, currentSeconds) {
+  let sinceTime = 0;
+  if (type) {
+    sinceTime = 0;
+    container.downloadPre = true;
+  } else {
+    sinceTime = currentSeconds;
+    container.downloadCur = true;
+  }
+  // const cig = await axios.get("config/config.json");
+  // let env = cig.data;
+  const url = `https://${String(
+    process.env.VUE_APP_BASE_API
+  )}/log/download/namespace/${data.metadata.namespace}/pod/${
+    data.metadata.name
+  }/container/${
+    container.name
+  }/previous/${type}/sinceSeconds/${sinceTime}/sinceTime/nil`;
+
+  // console.log("url", url);
+  axios({
+    url: url,
+    method: "get",
+    timeout: 30000,
+    headers: { Token: localStorage.getItem("k8s_token") },
+  })
+    .then((res) => {
+      const str = new Blob([res.data], { type: "text/plain;charset=utf-8" });
+      const ispre = type ? "_previous" : "";
+      type ? (container.downloadPre = false) : (container.downloadCur = false);
+      saveAs(
+        str,
+        data.metadata.namespace +
+          "_" +
+          data.metadata.name +
+          "_" +
+          container.name +
+          ispre +
+          ".log"
+      );
+      if (type) {
+        container.previousDownloading = false;
+      } else {
+        container.currentDownloading = false;
+      }
+    })
+    .catch((err) => {
+      console.log("err ::", err);
+      type
+        ? (container.previousDownloading = false)
+        : (container.currentDownloading = false);
+    });
 }
