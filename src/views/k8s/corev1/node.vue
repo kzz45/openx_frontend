@@ -12,6 +12,11 @@
       >
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column label="名称" prop="metadata.name"> </el-table-column>
+        <el-table-column label="InternalIP" prop="">
+          <template slot-scope="scoped">
+            {{ getNodeIP(scoped.row.status.addresses) }}
+          </template>
+        </el-table-column>
         <el-table-column label="状态">
           <template slot-scope="scoped">
             {{ scoped.row.status.conditions.slice(-1)[0].type }}
@@ -36,11 +41,17 @@
               >
                 <el-tag size="mini" type="warning">{{ item.effect }}</el-tag>
               </el-tooltip>
-              <!-- <el-tag size="mini">{{ item.key }}</el-tag> -->
-              <!-- <el-tag size="mini">{{ item.value || "空值" }}</el-tag> -->
             </div>
           </template>
         </el-table-column>
+        <el-table-column
+          label="KubeletVersion"
+          prop="status.nodeInfo.kubeletVersion"
+        ></el-table-column>
+        <el-table-column
+          label="OSImage"
+          prop="status.nodeInfo.osImage"
+        ></el-table-column>
         <el-table-column label="创建时间">
           <template slot-scope="scoped">
             {{
@@ -295,6 +306,7 @@ export default {
         this.get_node_list
       );
       if (result_list) {
+        // console.log(result_list);
         this.node_list = result_list;
       }
 
@@ -399,6 +411,15 @@ export default {
         type: "warning",
         message: "你考虑的很全面",
       });
+    },
+    getNodeIP(row) {
+      let addr = "";
+      for (const add of row) {
+        if (add.type === "InternalIP") {
+          addr = add.address;
+        }
+      }
+      return addr;
     },
     update_node(row) {
       this.node_dialog = true;
