@@ -34,10 +34,10 @@
         </el-table-column>
         <el-table-column label="PodIP" prop="status.podIP"></el-table-column>
         <el-table-column label="节点IP" prop="status.hostIP"></el-table-column>
-        <el-table-column
+        <!-- <el-table-column
           label="节点名称"
           prop="spec.nodeName"
-        ></el-table-column>
+        ></el-table-column> -->
         <el-table-column label="状态" prop="status.phase">
           <template slot-scope="scoped">
             <el-tag
@@ -262,13 +262,13 @@ export default {
     },
   },
   watch: {
-    isConnected: function (newVal, oldVal) {
-      if (newVal === true) {
+    isConnected: function (newVal) {
+      if (newVal) {
         this.get_pod_list();
         this.get_pod_metrics_list();
       }
     },
-    message: function (newMsg, oldMsg) {
+    message: function (newMsg) {
       const ns = localStorage.getItem("k8s_namespace");
       const podGvkObj = {
         group: "core",
@@ -311,10 +311,10 @@ export default {
     this.get_pod_list();
     this.get_pod_metrics_list();
   },
-  mounted() {
-    this.get_pod_list();
-    this.get_pod_metrics_list();
-  },
+  // mounted() {
+  //   this.get_pod_list();
+  //   this.get_pod_metrics_list();
+  // },
   data() {
     return {
       currentPage: 1,

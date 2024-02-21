@@ -78,7 +78,7 @@
             >
               <el-button
                 slot="reference"
-                :type="scoped.row.spec.unschedulable ? 'success' : 'danger'"
+                :type="scoped.row.spec.unschedulable ? 'success' : 'warning'"
                 :icon="
                   scoped.row.spec.unschedulable
                     ? 'el-icon-video-play'
@@ -306,7 +306,7 @@ export default {
         this.get_node_list
       );
       if (result_list) {
-        // console.log(result_list);
+        console.log(result_list);
         this.node_list = result_list;
       }
 
