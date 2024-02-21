@@ -28,9 +28,16 @@
         <el-table-column label="污点">
           <template slot-scope="scoped">
             <div v-for="(item, index) in scoped.row.spec.taints" :key="index">
-              <el-tag size="mini" type="warning">{{ item.effect }}</el-tag>
-              <el-tag size="mini">{{ item.key }}</el-tag>
-              <el-tag size="mini">{{ item.value || "空值" }}</el-tag>
+              <el-tooltip
+                class="item"
+                effect="dark"
+                :content="item.key + '=' + item.value"
+                placement="top"
+              >
+                <el-tag size="mini" type="warning">{{ item.effect }}</el-tag>
+              </el-tooltip>
+              <!-- <el-tag size="mini">{{ item.key }}</el-tag> -->
+              <!-- <el-tag size="mini">{{ item.value || "空值" }}</el-tag> -->
             </div>
           </template>
         </el-table-column>
@@ -50,23 +57,6 @@
               size="small"
               @click="update_node(scoped.row)"
             ></el-button>
-            <!-- <el-tooltip
-              class="item"
-              effect="dark"
-              :content="scoped.row.spec.unschedulable ? '启动调度' : '暂停调度'"
-              placement="top"
-            >
-              <el-button
-                :type="scoped.row.spec.unschedulable ? 'success' : 'danger'"
-                :icon="
-                  scoped.row.spec.unschedulable
-                    ? 'el-icon-video-play'
-                    : 'el-icon-video-pause'
-                "
-                size="small"
-                @click="taints_node(scoped.row)"
-              ></el-button>
-            </el-tooltip> -->
             <el-popconfirm
               :title="scoped.row.spec.unschedulable ? '启动调度' : '暂停调度'"
               confirm-button-text="确定"
