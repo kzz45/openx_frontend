@@ -38,14 +38,11 @@
         ></el-table-column>
         <el-table-column label="端口">
           <template slot-scope="scoped">
-            <el-tag
-              v-for="(item, index) in scoped.row.spec.ports"
-              :key="index"
-              style="margin-left: 3px"
-              >{{ item.port }}:{{ item.targetPort.intVal }}/{{
-                item.protocol
-              }}</el-tag
-            >
+            <div v-for="(item, index) in scoped.row.spec.ports" :key="index">
+              <el-tag>{{ item.port }}</el-tag>
+              <el-tag type="warning">{{ item.targetPort.intVal }}</el-tag>
+              <el-tag type="success">{{ item.protocol }}</el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="创建时间">
