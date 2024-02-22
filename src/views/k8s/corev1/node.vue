@@ -4,12 +4,7 @@
       <!-- <el-button type="primary" size="small" icon="el-icon-circle-plus"
         >新增</el-button
       > -->
-      <el-table
-        :data="page_node_list"
-        size="small"
-        empty-text="啥也没有"
-        border
-      >
+      <el-table :data="page_node_list" size="mini" empty-text="啥也没有" border>
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column label="名称" prop="metadata.name"> </el-table-column>
         <el-table-column label="InternalIP" prop="">
@@ -65,7 +60,7 @@
             <el-button
               type="primary"
               icon="el-icon-edit"
-              size="small"
+              size="mini"
               @click="update_node(scoped.row)"
             ></el-button>
             <el-popconfirm
@@ -84,7 +79,7 @@
                     ? 'el-icon-video-play'
                     : 'el-icon-video-pause'
                 "
-                size="small"
+                size="mini"
               ></el-button>
             </el-popconfirm>
             <!-- <el-tooltip
@@ -96,7 +91,7 @@
               <el-button
                 type="danger"
                 icon="el-icon-delete"
-                size="small"
+                size="mini"
               ></el-button>
             </el-tooltip> -->
           </template>
@@ -306,7 +301,7 @@ export default {
         this.get_node_list
       );
       if (result_list) {
-        console.log(result_list);
+        // console.log(result_list);
         this.node_list = result_list;
       }
 
