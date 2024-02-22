@@ -13,10 +13,9 @@
 
       <el-table
         :data="page_event_list"
-        size="small"
+        size="mini"
         empty-text="啥也没有"
         border
-        :row-style="TableRowStyle"
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="40"> </el-table-column>
@@ -38,7 +37,19 @@
           </template>
         </el-table-column>
         <el-table-column label="消息" prop="message"> </el-table-column>
-        <el-table-column label="类型" prop="type"> </el-table-column>
+        <el-table-column label="类型" prop="">
+          <template slot-scope="scoped">
+            <el-tag
+              v-if="scoped.row.type === 'Warning'"
+              type="danger"
+              size="mini"
+              >{{ scoped.row.type }}</el-tag
+            >
+            <el-tag v-else type="success" size="mini">
+              {{ scoped.row.type }}</el-tag
+            >
+          </template>
+        </el-table-column>
         <el-table-column label="原因" prop="reason"> </el-table-column>
         <el-table-column label="时间">
           <template slot-scope="scoped">
@@ -73,7 +84,7 @@
                 slot="reference"
                 type="danger"
                 icon="el-icon-delete"
-                size="small"
+                size="mini"
               ></el-button>
             </el-popconfirm>
           </template>
