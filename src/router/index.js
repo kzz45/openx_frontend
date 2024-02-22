@@ -48,7 +48,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/openx/cloudLoadBalancer"),
         meta: {
           title: "负载均衡",
-          icon: "cm",
+          icon: "slb",
         },
       },
       {
@@ -57,7 +57,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/openx/cloudAccessControl"),
         meta: {
           title: "访问控制",
-          icon: "cm",
+          icon: "acl",
         },
       },
       {
@@ -66,7 +66,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/openx/affinity"),
         meta: {
           title: "亲和性",
-          icon: "svc",
+          icon: "affinity",
         },
       },
       {
@@ -75,7 +75,34 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/openx/toleration"),
         meta: {
           title: "容忍性",
-          icon: "cm",
+          icon: "toleration",
+        },
+      },
+      {
+        path: "mysql",
+        name: "MySQL",
+        component: () => import("@/views/k8s/openx/mysql"),
+        meta: {
+          title: "MySQL",
+          icon: "mysql",
+        },
+      },
+      {
+        path: "redis",
+        name: "Redis",
+        component: () => import("@/views/k8s/openx/redis"),
+        meta: {
+          title: "Redis",
+          icon: "redis",
+        },
+      },
+      {
+        path: "etcd",
+        name: "Etcd",
+        component: () => import("@/views/k8s/openx/etcd"),
+        meta: {
+          title: "Etcd",
+          icon: "etcd",
         },
       },
       // {
