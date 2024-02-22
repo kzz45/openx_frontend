@@ -9,25 +9,31 @@
         >新增</el-button
       >
       <!-- <el-button type="primary" size="small" icon="el-icon-bottom"
-            >导入</el-button
-          >
-          <el-button type="primary" size="small" icon="el-icon-bottom"
-            >导入YAML</el-button
-          >
-          <el-button type="info" size="small" icon="el-icon-copy-document"
-            >拷贝</el-button
-          >
-          <el-button type="warning" size="small" icon="el-icon-edit"
-            >编辑</el-button
-          >
-          <el-button type="danger" size="small" icon="el-icon-delete"
-            >删除</el-button
-          > -->
+        >导入</el-button
+      >
+      <el-button type="primary" size="small" icon="el-icon-bottom"
+        >导入YAML</el-button
+      >
+      <el-button type="info" size="small" icon="el-icon-copy-document"
+        >拷贝</el-button
+      >
+      <el-button type="warning" size="small" icon="el-icon-edit"
+        >编辑</el-button
+      > -->
+      <el-button
+        type="danger"
+        size="small"
+        icon="el-icon-delete"
+        :disabled="multiple_service_list.length === 0"
+        @click="batchDelObj"
+        >批量删除</el-button
+      >
       <el-table
         :data="page_service_list"
-        size="small"
+        size="mini"
         empty-text="啥也没有"
         border
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55"> </el-table-column>
         <el-table-column label="名称" prop="metadata.name"></el-table-column>
@@ -39,9 +45,11 @@
         <el-table-column label="端口">
           <template slot-scope="scoped">
             <div v-for="(item, index) in scoped.row.spec.ports" :key="index">
-              <el-tag>{{ item.port }}</el-tag>
-              <el-tag type="warning">{{ item.targetPort.intVal }}</el-tag>
-              <el-tag type="success">{{ item.protocol }}</el-tag>
+              <el-tag size="mini">{{ item.port }}</el-tag>
+              <el-tag type="warning" size="mini">{{
+                item.targetPort.intVal
+              }}</el-tag>
+              <el-tag type="success" size="mini">{{ item.protocol }}</el-tag>
             </div>
           </template>
         </el-table-column>
@@ -58,7 +66,7 @@
             <el-button
               type="primary"
               icon="el-icon-edit"
-              size="small"
+              size="mini"
               @click="update_service(scoped.row)"
             ></el-button>
             <el-popconfirm
@@ -73,7 +81,7 @@
                 slot="reference"
                 type="danger"
                 icon="el-icon-delete"
-                size="small"
+                size="mini"
               ></el-button>
             </el-popconfirm>
             <el-tooltip
@@ -91,7 +99,7 @@
                   }
                 "
               >
-                <el-button type="warning" icon="el-icon-menu" size="small">
+                <el-button type="warning" icon="el-icon-menu" size="mini">
                 </el-button>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item
@@ -189,7 +197,11 @@
               <el-row>
                 <el-col :span="12">
                   <el-form-item label="类型">
-                    <el-select v-model="service_obj.spec.type" placeholder="">
+                    <el-select
+                      v-model="service_obj.spec.type"
+                      placeholder=""
+                      clearable
+                    >
                       <el-option
                         label="ClusterIP"
                         value="ClusterIP"
@@ -261,20 +273,24 @@
                     </el-table-column>
                     <el-table-column label="协议" prop="protocol">
                       <template slot-scope="scoped">
-                        <el-input
+                        <el-select
                           v-if="scoped.row.isSet"
                           v-model="scoped.row.protocol"
-                          size="mini"
-                        ></el-input>
-                        <el-input
+                        >
+                          <el-option label="TCP" value="TCP"></el-option>
+                          <el-option label="UDP" value="UDP"></el-option>
+                        </el-select>
+                        <el-select
                           v-else
                           v-model="scoped.row.protocol"
-                          size="mini"
                           disabled
-                        ></el-input>
+                        >
+                          <el-option label="TCP" value="TCP"></el-option>
+                          <el-option label="UDP" value="UDP"></el-option>
+                        </el-select>
                       </template>
                     </el-table-column>
-                    <el-table-column label="端口" prop="port">
+                    <el-table-column label="服务端口" prop="port">
                       <template slot-scope="scoped">
                         <el-input
                           v-if="scoped.row.isSet"
@@ -317,7 +333,6 @@
                           "
                         ></el-button>
                         <el-button
-                          v-if="!scoped.row.isSet"
                           type="danger"
                           icon="el-icon-delete"
                           size="mini"
@@ -495,6 +510,7 @@ export default {
       dialog_tabs: "metadata",
       currentPage: 1,
       service_list: [],
+      multiple_service_list: [],
       service_dialog: false,
       kv_tag: {
         label: "",
@@ -519,6 +535,27 @@ export default {
     };
   },
   methods: {
+    handleSelectionChange(val) {
+      this.multiple_service_list = val;
+    },
+    batchDelObj() {
+      this.$confirm("将批量删除所选项目, 是否继续?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          for (const item of this.multiple_service_list) {
+            this.delete_service(item);
+          }
+        })
+        .catch(() => {
+          this.$message({
+            type: "warning",
+            message: "你考虑的很全面",
+          });
+        });
+    },
     showKV(ans) {
       let tags = [];
       for (let key in ans) {
@@ -613,9 +650,11 @@ export default {
     create_service() {
       this.service_dialog = true;
       this.dialogStatus = "create_service";
-      this.service_obj.metadata = Object.assign({}, MetadataObj);
-      this.service_obj.spec.ports = [];
-      this.service_obj.spec.selector = Object.assign({}, "");
+      this.dialog_tabs = "metadata";
+      this.service_obj = Object.assign({}, ServiceObj);
+      // this.service_obj.metadata = Object.assign({}, MetadataObj);
+      // this.service_obj.spec.ports = [];
+      // this.service_obj.spec.selector = Object.assign({}, "");
     },
     update_service(row) {
       this.service_dialog = true;
@@ -669,7 +708,7 @@ export default {
         kind: "Service",
       };
       const encodeItem = encodeify(gvkObj, initItem);
-      localStorage.setItem("core-v1-Service", binaryToStr(encodeItem));
+      localStorage.setItem(Servicegvk, binaryToStr(encodeItem));
       Notification({
         title: "导出成功",
         message: "success",
@@ -678,8 +717,8 @@ export default {
       });
     },
     export_yaml(item) {
-      const nsGvk = "core-v1-Service";
-      const gvkArr = nsGvk.split("-");
+      // const nsGvk = "core-v1-Service";
+      const gvkArr = Servicegvk.split("-");
       const cloneItem = cloneDeep(item);
       let fileName = item.metadata?.name || "";
       let avk = {
@@ -688,7 +727,7 @@ export default {
       };
       const yamlData = json2yaml.stringify(Object.assign(avk, cloneItem));
       const str = new Blob([yamlData], { type: "text/plain;charset=utf-8" });
-      saveAs(str, nsGvk + "-" + fileName + ".yaml");
+      saveAs(str, Servicegvk + "-" + fileName + ".yaml");
       Notification({
         title: "导出成功",
         message: "success",
@@ -707,12 +746,7 @@ export default {
         const item = cloneDeep(this.service_obj);
         const param = updateSocketData(gvkObj, item);
         const ns = localStorage.getItem("k8s_namespace");
-        const create_data = initSocketData(
-          ns,
-          "core-v1-Service",
-          "create",
-          param
-        );
+        const create_data = initSocketData(ns, Servicegvk, "create", param);
         sendSocketMessage(create_data, store);
         this.service_dialog = false;
       } else if (this.dialogStatus === "update_service") {
@@ -725,19 +759,14 @@ export default {
         const item = cloneDeep(this.service_obj);
         const param = updateSocketData(gvkObj, item);
         const ns = localStorage.getItem("k8s_namespace");
-        const update_data = initSocketData(
-          ns,
-          "core-v1-Service",
-          "update",
-          param
-        );
+        const update_data = initSocketData(ns, Servicegvk, "update", param);
         sendSocketMessage(update_data, store);
         this.service_dialog = false;
       }
     },
     get_service_list() {
       let ns = localStorage.getItem("k8s_namespace");
-      const senddata = initSocketData(ns, "core-v1-Service", "list");
+      const senddata = initSocketData(ns, Servicegvk, "list");
       sendSocketMessage(senddata, store);
     },
     updateWatch(types, updateRaw) {
