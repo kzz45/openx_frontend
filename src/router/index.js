@@ -23,6 +23,7 @@ export const constantRoutes = [
     meta: { title: "首页", icon: "home" },
   },
 
+  // 这里的就是本平台特有的
   {
     path: "/openx",
     name: "OpenX",
@@ -39,7 +40,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/openx/openx"),
         meta: {
           title: "应用列表",
-          icon: "build",
+          icon: "x",
         },
       },
       {
@@ -111,12 +112,12 @@ export const constantRoutes = [
       //   component: () => import("@/views/k8s/app/test"),
       //   meta: {
       //     title: "测试",
-      //     icon: "cm",
       //   },
       // },
     ],
   },
 
+  // 这里的就是原生 K8S 中的
   {
     path: "/corev1",
     component: Layout,
@@ -198,17 +199,22 @@ export const constantRoutes = [
       },
     ],
   },
+
+  // terminal 终端
   {
     hidden: true,
     path: "/term",
     component: () => import("@/views/k8s/terminal.vue"),
   },
+
+  // 日志
   {
     hidden: true,
     path: "/log",
     component: () => import("@/views/k8s/log.vue"),
   },
-  // 这里就不需要了
+
+  // 这里暂时不需要了 OpenX 代替
   // {
   //   path: "/appsv1",
   //   component: Layout,
@@ -235,6 +241,7 @@ export const constantRoutes = [
   //   ],
   // },
 
+  // 这两个也基本是管理员才会看到的
   {
     path: "/rbacv1",
     component: Layout,
@@ -246,7 +253,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/rbacv1/clusterrole"),
         meta: {
           title: "集群角色",
-          icon: "deployment",
+          icon: "clusterrole",
         },
       },
       {
@@ -255,7 +262,7 @@ export const constantRoutes = [
         component: () => import("@/views/k8s/rbacv1/clusterrolebinding"),
         meta: {
           title: "角色绑定",
-          icon: "build",
+          icon: "clusterrolebinding",
         },
       },
     ],

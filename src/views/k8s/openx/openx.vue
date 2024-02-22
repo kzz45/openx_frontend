@@ -40,7 +40,7 @@
       >
       <el-table
         :data="page_openx_list"
-        size="small"
+        size="mini"
         empty-text="啥也没有"
         border
         @selection-change="handleSelectionChange"
