@@ -57,9 +57,12 @@
               )"
               :key="index"
             >
-              <el-tag effect="dark" @click.stop="update_openx(scoped.row)">{{
-                info.appName
-              }}</el-tag>
+              <el-tag
+                effect="dark"
+                @click.stop="update_openx(scoped.row)"
+                style="margin: 5px"
+                >{{ info.appName }}</el-tag
+              >
             </div>
           </template>
         </el-table-column>
@@ -73,27 +76,37 @@
               )"
               :key="index"
             >
-              <el-tag effect="dark" @click.stop="update_openx(scoped.row)">{{
-                info.replicas
-              }}</el-tag>
-              <el-button
-                v-if="Number(info.replicas) > 0"
-                type="danger"
-                icon="el-icon-video-pause"
-                @click.stop="stop_app(scoped.row)"
-                size="small"
-                style="margin-left: 10px"
-                >Stop</el-button
+              <el-tag
+                effect="dark"
+                @click.stop="update_openx(scoped.row)"
+                style="margin: 5px"
+                >{{ info.replicas }}</el-tag
               >
-              <el-button
-                v-else
-                type="primary"
-                size="small"
-                icon="el-icon-video-play"
-                @click.stop="start_app(scoped.row)"
-                style="margin-left: 10px"
-                >Start</el-button
+              <el-tooltip
+                class="item"
+                effect="dark"
+                :content="Number(info.replicas) > 0 ? '停止' : '启动'"
+                placement="top"
               >
+                <el-button
+                  v-if="Number(info.replicas) > 0"
+                  type="danger"
+                  icon="el-icon-video-pause"
+                  @click.stop="stop_app(scoped.row)"
+                  size="small"
+                  style="margin: 5px"
+                  >Stop</el-button
+                >
+                <el-button
+                  v-else
+                  type="primary"
+                  size="small"
+                  icon="el-icon-video-play"
+                  @click.stop="start_app(scoped.row)"
+                  style="margin: 5px"
+                  >Start</el-button
+                >
+              </el-tooltip>
             </div>
           </template>
         </el-table-column>
@@ -354,6 +367,7 @@ import {
   updateSocketData,
   deleteSocketData,
   returnResponse,
+  getGvkGroup,
 } from "@/api/k8s";
 import {
   binaryToStr,
@@ -429,6 +443,7 @@ export default {
         this.get_openx_list
       );
       if (openx_result_list) {
+        // console.log(openx_result_list);
         this.openx_list = openx_result_list;
       }
       let nsGvkObj = {

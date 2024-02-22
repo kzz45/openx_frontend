@@ -6,15 +6,15 @@ Vue.use(Router);
 
 export const constantRoutes = [
   {
+    hidden: true,
     path: "/login",
     component: () => import("@/views/login/index"),
-    hidden: true,
   },
 
   {
+    hidden: true,
     path: "/404",
     component: () => import("@/views/404"),
-    hidden: true,
   },
 
   {
@@ -80,6 +80,7 @@ export const constantRoutes = [
         },
       },
       {
+        hidden: true,
         path: "mysql",
         name: "MySQL",
         component: () => import("@/views/k8s/openx/mysql"),
@@ -89,6 +90,7 @@ export const constantRoutes = [
         },
       },
       {
+        hidden: true,
         path: "redis",
         name: "Redis",
         component: () => import("@/views/k8s/openx/redis"),
@@ -98,6 +100,7 @@ export const constantRoutes = [
         },
       },
       {
+        hidden: true,
         path: "etcd",
         name: "Etcd",
         component: () => import("@/views/k8s/openx/etcd"),
@@ -121,7 +124,7 @@ export const constantRoutes = [
   {
     path: "/corev1",
     component: Layout,
-    meta: { title: "核心应用", icon: "corev1" },
+    meta: { title: "原生应用", icon: "corev1" },
     children: [
       {
         path: "pod",

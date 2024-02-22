@@ -21,19 +21,8 @@
         <el-table-column type="selection" width="40"> </el-table-column>
         <el-table-column label="对象">
           <template slot-scope="scoped">
-            {{ scoped.row.involvedObject.kind }}:{{
-              scoped.row.involvedObject.name
-            }}
-          </template>
-        </el-table-column>
-        <el-table-column label="来源">
-          <template slot-scope="scoped">
-            <span v-if="scoped.row.source.host === ''">
-              {{ scoped.row.source.component }}
-            </span>
-            <span v-else>
-              {{ scoped.row.source.component }}:{{ scoped.row.source.host }}
-            </span>
+            <!-- {{ scoped.row.involvedObject.kind }}: -->
+            {{ scoped.row.involvedObject.name }}
           </template>
         </el-table-column>
         <el-table-column label="消息" prop="message"> </el-table-column>
@@ -50,21 +39,19 @@
             >
           </template>
         </el-table-column>
+        <el-table-column label="来源">
+          <template slot-scope="scoped">
+            <span v-if="scoped.row.source.host === ''">
+              {{ scoped.row.source.component }}
+            </span>
+            <span v-else>
+              {{ scoped.row.source.component }}:{{ scoped.row.source.host }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column label="原因" prop="reason"> </el-table-column>
         <el-table-column label="时间">
           <template slot-scope="scoped">
-            <!-- <span v-if="scoped.row.reason === 'Scheduled'">
-              {{
-                scoped.row.eventTime.seconds
-                  | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-              }}
-            </span>
-            <span v-else>
-              {{
-                scoped.row.firstTimestamp.seconds
-                  | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
-              }}
-            </span> -->
             {{
               scoped.row.firstTimestamp.seconds
                 | parseTime("{y}-{m}-{d} {h}:{i}:{s}")
