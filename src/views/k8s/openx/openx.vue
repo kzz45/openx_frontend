@@ -36,7 +36,7 @@
         size="small"
         icon="el-icon-delete"
         @click="batchDelObj"
-        >删除</el-button
+        >批量删除</el-button
       >
       <el-table
         :data="page_openx_list"
@@ -589,7 +589,25 @@ export default {
       this.dialogStatus = "batchedit";
       this.batchedit_dialog = true;
     },
-    batchDelObj() {},
+    batchDelObj() {
+      this.$confirm("将批量删除所选项目, 是否继续?", "警告", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          let tempList = cloneDeep(this.multiple_openx_list);
+          for (const item of tempList) {
+            this.delete_openx(item);
+          }
+        })
+        .catch(() => {
+          this.$message({
+            type: "warning",
+            message: "你考虑的很全面",
+          });
+        });
+    },
     add_app_form() {
       let app_form_appName = this.app_form_appName;
       let inputIndex = this.app_index;
