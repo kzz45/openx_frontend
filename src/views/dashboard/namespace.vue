@@ -94,6 +94,8 @@ export default {
         localStorage.removeItem("k8s_token");
         localStorage.removeItem("k8s_token_expire");
         localStorage.removeItem("clusterRole");
+        localStorage.removeItem("k8s_namespace");
+        localStorage.removeItem("termToken");
         this.$router.push("/login");
       }
     },
