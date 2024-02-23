@@ -200,6 +200,8 @@
         style="text-align: left; margin-top: 20px"
       >
       </el-pagination>
+
+      <!-- 新增应用 -->
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="openx_dialog"
@@ -269,6 +271,7 @@
         </span>
       </el-dialog>
 
+      <!-- 伸缩应用 -->
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="autoscale_dialog"
@@ -309,31 +312,45 @@
         </span>
       </el-dialog>
 
+      <!-- 复制应用 -->
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="copyobj_dialog"
         width="40%"
       >
-        <el-form
-          ref="openx_copy_obj_refs"
-          :model="openx_copy_obj"
-          size="small"
-          label-width="100px"
-        >
-          <el-form-item label="目标命名空间" name="namespace">
-            <el-select
-              v-model="openx_copy_obj.metadata.namespace"
-              placeholder=""
-            >
-              <el-option
-                v-for="(item, index) in namespace_list"
-                :label="item"
-                :value="item"
-                :key="index"
-              ></el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
+        <div style="display: flex; justify-content: flex-start">
+          <el-card class="box-card" style="width: 50%">
+            <el-form size="small" label-width="100px">
+              <el-form-item label="源应用名称" name="name">
+                <el-tag v-for="(item, index) in source_openx_list" :key="index">
+                  {{ item.metadata.name }}
+                </el-tag>
+              </el-form-item>
+              <el-form-item label="源命名空间" name="namespace">
+                <el-tag>{{ current_ns }}</el-tag>
+              </el-form-item>
+            </el-form>
+          </el-card>
+          <el-card class="box-card" style="width: 50%; margin-left: 10px">
+            <el-form size="small" label-width="100px">
+              <el-form-item label="目标命名空间" name="namespace">
+                <el-select
+                  v-model="target_namespace"
+                  placeholder="请选择"
+                  clearable
+                >
+                  <el-option
+                    v-for="(item, index) in namespace_list"
+                    :label="item"
+                    :value="item"
+                    :key="index"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </el-card>
+        </div>
+
         <span slot="footer" class="dialog-footer">
           <el-button size="small" @click="copyobj_dialog = false"
             >取 消</el-button
@@ -344,6 +361,7 @@
         </span>
       </el-dialog>
 
+      <!-- 批量编辑 -->
       <el-dialog
         :title="textMap[dialogStatus]"
         :visible.sync="batchedit_dialog"
@@ -389,6 +407,18 @@ const MetadataObj = {
   namespace: localStorage.getItem("k8s_namespace") || "",
   labels: {},
   annotations: {},
+};
+
+const OpenXObj = {
+  metadata: {
+    name: "",
+    namespace: localStorage.getItem("k8s_namespace") || "",
+    labels: {},
+    annotations: {},
+  },
+  spec: {
+    applications: [],
+  },
 };
 
 export default {
@@ -472,7 +502,7 @@ export default {
         create_openx: "新增应用",
         update_openx: "编辑应用",
         autoscale: "应用伸缩",
-        copyobj: "拷贝应用",
+        copy_openx: "拷贝应用",
         batchedit: "批量编辑",
       },
       dialogStatus: "",
@@ -523,6 +553,10 @@ export default {
       app_form_appName: "",
       app_index: 0,
       namespace_list: [],
+      current_ns: localStorage.getItem("k8s_namespace") || "",
+      target_namespace: "",
+      source_openx_list: [],
+      target_openx_list: [],
     };
   },
   methods: {
@@ -539,13 +573,17 @@ export default {
       this.namespace_list = [];
       const rules = JSON.parse(localStorage.getItem("clusterRole"));
       for (let rule in rules) {
-        this.namespace_list.push(rule);
+        if (rule !== localStorage.getItem("k8s_namespace")) {
+          this.namespace_list.push(rule);
+        }
       }
-      console.log(this.namespace_list, "======");
+      // console.log(this.namespace_list, "======");
     },
     copyObjToNs() {
-      this.dialogStatus = "copyobj";
+      this.dialogStatus = "copy_openx";
       this.copyobj_dialog = true;
+      this.source_openx_list = cloneDeep(this.multiple_openx_list);
+      this.target_openx_list = cloneDeep(this.multiple_openx_list);
     },
     batchEditObj() {
       this.dialogStatus = "batchedit";
@@ -804,6 +842,34 @@ export default {
         const update_data = initSocketData(ns, Openxgvk, "update", param);
         sendSocketMessage(update_data, store);
         this.autoscale_dialog = false;
+      } else if (this.dialogStatus === "copy_openx") {
+        const gvkObj = {
+          group: "openx.neverdown.org",
+          version: "v1",
+          kind: "Openx",
+        };
+        for (let item of this.target_openx_list) {
+          let initItem = Object.assign(OpenXObj, item);
+          initItem.metadata.namespace = this.target_namespace;
+          delete initItem.metadata.resourceVersion;
+          delete initItem.status;
+          // console.log(initItem);
+          const param = updateSocketData(gvkObj, initItem);
+          const createdata = initSocketData(
+            this.target_namespace,
+            Openxgvk,
+            "create",
+            param
+          );
+          sendSocketMessage(createdata, store);
+        }
+        Notification({
+          title: "拷贝完成",
+          message: "success",
+          type: "success",
+          duration: 3000,
+        });
+        this.copyobj_dialog = false;
       }
     },
     get_openx_list() {
