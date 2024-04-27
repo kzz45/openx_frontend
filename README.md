@@ -1,12 +1,7 @@
 # K8S管理平台(OpenX)
 
-<!-- ## 本地运行
+请移步至 [https://github.com/kzz45/neverdown](https://github.com/kzz45/neverdown)
 
-```sh
-npm cache clean --force
-npm install -D
-npm run dev
-``` -->
 
 ## OpenX 功能
 
